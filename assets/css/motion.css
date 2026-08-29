@@ -70,6 +70,49 @@ html.pdcm-motion .pdcm-rise {
 
 html.pdcm-motion .hero-content { will-change: transform; }
 
+/* Ambient light field. A canvas of slow-drifting volumetric masses in
+   Capital Blue, Harbor Slate, and one restrained Soft Gold, composited
+   additively and blended over the hero's existing gradient rather than
+   replacing it.
+
+   It renders at a fraction of display resolution and is scaled up, so
+   the softness is free and the per-frame cost stays trivial. It sits at
+   z-index 0, beneath the hero's existing sheen (z 1), vignette (z 2),
+   and content (z 3) — so the vignette still frames it and the headline
+   keeps its contrast. */
+
+.pdcm-hero-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  filter: blur(18px);
+  transform: scale(1.08); /* hides the blur's soft edges */
+  transition: opacity 2s ease;
+}
+
+/* Lit by motion.js once the first frame is drawn. Deliberately NOT gated
+   on .pdcm-motion: a still light field is not motion, so a visitor who
+   asked for reduced motion still gets the richer hero — just frozen. */
+.pdcm-hero-canvas.is-lit { opacity: 0.85; }
+
+/* The base stylesheet gives .hero::before a fixed diagonal sheen. Once
+   motion is live it drifts across on a long cycle, which is what makes
+   the hero read as lit rather than painted. */
+html.pdcm-motion .hero::before {
+  animation: pdcmSheen 24s cubic-bezier(.45,0,.55,1) infinite alternate;
+}
+
+@keyframes pdcmSheen {
+  from { transform: translate3d(-16%, 0, 0) scale(1.08); opacity: 0.42; }
+  to   { transform: translate3d(14%, 3%, 0) scale(1.16); opacity: 0.72; }
+}
+
 .pdcm-hero-rule {
   display: block;
   height: 1px;
@@ -175,51 +218,13 @@ html.pdcm-motion .hero-content { will-change: transform; }
 
 
 /* ── 5. Approach ───────────────────────────────────────────────────
-   A parallaxed vertical-fin texture behind the navy section, plus a
-   scrubbed progress rail across the three items. */
+   Motion only: the three items reveal on a stagger (see motion.js).
 
-#approach { overflow: hidden; }
-
-.pdcm-fins {
-  position: absolute;
-  inset: -14% 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.5;
-  will-change: transform;
-  background-image:
-    repeating-linear-gradient(90deg,
-      rgba(47, 71, 104, 0) 0px,
-      rgba(47, 71, 104, 0) 52px,
-      rgba(47, 71, 104, 0.55) 52px,
-      rgba(47, 71, 104, 0.55) 53px,
-      rgba(214, 214, 214, 0.05) 53px,
-      rgba(214, 214, 214, 0.05) 56px),
-    radial-gradient(ellipse 60% 90% at 22% 40%,
-      rgba(33, 93, 155, 0.20), transparent 64%);
-  /* Mask uses the alpha channel only; the colour is irrelevant, so it is
-     written on-palette to keep a palette audit of this file clean. */
-  -webkit-mask-image: radial-gradient(ellipse 82% 76% at 50% 46%, #192c44 18%, transparent 78%);
-          mask-image: radial-gradient(ellipse 82% 76% at 50% 46%, #192c44 18%, transparent 78%);
-}
-
-#approach .inner { position: relative; z-index: 1; }
-
-.pdcm-rail {
-  position: relative;
-  height: 1px;
-  margin: 8px 0 46px;
-  background: rgba(214, 214, 214, 0.16);
-}
-
-.pdcm-rail i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 0;
-  background: linear-gradient(90deg,
-    rgba(234, 208, 156, 0.35),
-    rgba(234, 208, 156, 0.9));
-}
+   An earlier version added a vertical-fin texture and a scrubbed
+   progress rail here. Both were removed: at low opacity over flat navy
+   the fins read as screen banding rather than texture, and the rail
+   drew a second horizontal line directly above the column rules the
+   section already has. The section's own layout was already right. */
 
 
 /* ── 6. Values — sticky stack ──────────────────────────────────────
@@ -430,16 +435,17 @@ html.pdcm-motion .location-banner { will-change: transform; }
   .pdcm-scroll-cue { display: none; }
 
   .pdcm-band-art,
-  .pdcm-fins,
   html.pdcm-motion .location-banner,
   html.pdcm-motion .hero-content {
     transform: none !important;
   }
 
+  /* The light field still renders — as a single static frame, drawn once
+     by motion.js — but nothing about it moves. */
+  html.pdcm-motion .hero::before { animation: none; }
   .pdcm-scroll-cue i { animation: none; }
 
   .pdcm-hero-rule { width: 220px; }
-  .pdcm-rail i { width: 100%; }
 
   html.pdcm-motion .disclaimer-card { transition: none; }
 
@@ -455,5 +461,5 @@ html.pdcm-motion .location-banner { will-change: transform; }
 @media (max-width: 900px) {
   .pdcm-scroll-cue { left: 20px; bottom: 24px; }
   .pdcm-band { height: 30vh; min-height: 200px; }
-  .pdcm-fins { opacity: 0.3; }
+  .pdcm-hero-canvas { filter: blur(12px); }
 }

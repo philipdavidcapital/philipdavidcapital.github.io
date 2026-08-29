@@ -12,6 +12,148 @@
    nothing without it.
    ════════════════════════════════════════════════════════════════════ */
 
+/* ════════════════════════════════════════════════════════════════════
+   HERO LIGHT FIELD
+   ════════════════════════════════════════════════════════════════════
+
+   Slow-drifting volumetric light over the hero's existing gradient. Runs
+   independently of GSAP and of the scroll layer below: if a visitor has
+   asked for reduced motion it draws a single still frame rather than
+   disappearing, because a still light field is not motion.
+
+   Colours are guideline values only — Capital Blue and Harbor Slate
+   carry the field, with one Soft Gold mass kept low and slow, since the
+   guidelines reserve gold for elevated use and ask that it stay sparing.
+   ════════════════════════════════════════════════════════════════════ */
+
+(function () {
+  "use strict";
+
+  var hero = document.querySelector(".hero");
+  var canvas = document.querySelector(".pdcm-hero-canvas");
+  if (!hero || !canvas || !canvas.getContext) return;
+
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  /* Rendered at a sixth of display size and scaled up by CSS. The
+     upscale does most of the softening; the CSS blur finishes it. */
+  var SCALE = 6;
+
+  /* Periods are deliberately coprime so the masses never resynchronise
+     into a visible loop. They sit in the 17-31s range: slow enough to
+     stay calm, quick enough that the hero is visibly alive within a few
+     seconds of landing. The gold mass is the slowest and faintest. */
+  var MASSES = [
+    // colour               alpha  radius  origin        drift amp     period (s)
+    { c: [33, 93, 155],   a: 0.50, r: 0.62, x: 0.30, y: 0.34, ax: 0.24, ay: 0.15, px: 19, py: 26 },
+    { c: [47, 71, 104],   a: 0.55, r: 0.70, x: 0.72, y: 0.30, ax: 0.21, ay: 0.18, px: 23, py: 17 },
+    { c: [33, 93, 155],   a: 0.34, r: 0.46, x: 0.54, y: 0.66, ax: 0.26, ay: 0.14, px: 29, py: 21 },
+    { c: [234, 208, 156], a: 0.11, r: 0.34, x: 0.20, y: 0.26, ax: 0.17, ay: 0.11, px: 31, py: 27 }
+  ];
+
+  var w = 0;
+  var h = 0;
+
+  function size() {
+    var r = hero.getBoundingClientRect();
+    w = Math.max(1, Math.round(r.width / SCALE));
+    h = Math.max(1, Math.round(r.height / SCALE));
+    canvas.width = w;
+    canvas.height = h;
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.globalCompositeOperation = "lighter";
+
+    var min = Math.min(w, h);
+
+    for (var i = 0; i < MASSES.length; i++) {
+      var m = MASSES[i];
+      var cx = (m.x + Math.sin(t / m.px) * m.ax) * w;
+      var cy = (m.y + Math.cos(t / m.py) * m.ay) * h;
+      var rad = m.r * min;
+
+      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      var rgb = m.c[0] + "," + m.c[1] + "," + m.c[2];
+      g.addColorStop(0, "rgba(" + rgb + "," + m.a + ")");
+      g.addColorStop(0.55, "rgba(" + rgb + "," + m.a * 0.32 + ")");
+      g.addColorStop(1, "rgba(" + rgb + ",0)");
+
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  var running = false;
+  var raf = null;
+  var start = null;
+
+  function frame(now) {
+    if (start === null) start = now;
+    draw((now - start) / 1000);
+    raf = window.requestAnimationFrame(frame);
+  }
+
+  function play() {
+    if (running || reduce.matches) return;
+    running = true;
+    raf = window.requestAnimationFrame(frame);
+  }
+
+  function pause() {
+    running = false;
+    if (raf) window.cancelAnimationFrame(raf);
+    raf = null;
+  }
+
+  function init() {
+    size();
+    draw(0);
+    canvas.classList.add("is-lit");
+    if (!reduce.matches) play();
+  }
+
+  init();
+
+  /* Nothing to animate while the hero is off screen or the tab is
+     hidden — a background that costs battery on an unread page is a
+     bug, not an effect. */
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      entries[0].isIntersecting ? play() : pause();
+    }, { threshold: 0 }).observe(hero);
+  }
+
+  document.addEventListener("visibilitychange", function () {
+    document.hidden ? pause() : play();
+  });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      size();
+      if (!running) draw(0);
+    }, 180);
+  });
+
+  /* Honour a preference changed after load, in both directions. */
+  var onPref = function () {
+    if (reduce.matches) { pause(); draw(0); } else { start = null; play(); }
+  };
+  if (reduce.addEventListener) reduce.addEventListener("change", onPref);
+  else if (reduce.addListener) reduce.addListener(onPref);
+})();
+
+
 (function () {
   "use strict";
 
@@ -127,31 +269,12 @@
 
   /* ── Atmosphere ──────────────────────────────────────────────────
      The transitional band between The Firm and Approach, and the
-     vertical-fin texture behind Approach. */
+     existing Tulsa photograph in Contact. */
 
   parallax($(".pdcm-band-art"), -12, 12);
-  parallax($(".pdcm-fins"), -8, 8);
 
   var banner = $(".location-banner");
   if (banner) parallax(banner, -7, 7);
-
-
-  /* ── Approach progress rail ──────────────────────────────────────
-     Fills across as the three items pass. */
-
-  var railFill = $(".pdcm-rail i");
-  if (railFill) {
-    gsap.to(railFill, {
-      width: "100%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: ".approach-list",
-        start: "top 78%",
-        end: "bottom 72%",
-        scrub: true
-      }
-    });
-  }
 
 
   /* ── Values sticky stack ─────────────────────────────────────────
