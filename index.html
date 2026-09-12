@@ -2460,6 +2460,50 @@ section{padding:90px 56px;}
 .statement::before { font-family: 'Cormorant SC', serif; }
 
 </style>
+<style id="pdcm-hero-film-css">
+  /* ── Landing film ──────────────────────────────────────────────────
+     The hero previously carried five overlapping animations (background
+     drift, diagonal sheen, orb, and a drifting vignette) all tuned to
+     20-50s at low opacity. Nothing had a trackable edge, so they averaged
+     out and the hero read as still. A single moving image replaces that. */
+
+  .hero-film {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.8s ease;
+  }
+
+  .hero-film.is-playing { opacity: 1; }
+
+  /* The diagonal sheen competed with the footage; hold it well back so it
+     reads as a glaze on the film rather than a second moving layer. */
+  .hero::before { opacity: 0.24 !important; }
+
+  /* Restore the vignette to full strength and stop it drifting. At 0.30 it
+     was barely darkening anything, and animating the vignette itself partly
+     cancelled the layers beneath it. Full strength is what keeps the
+     headline legible over moving footage. */
+  .hero::after {
+    opacity: 0.95 !important;
+    animation: none !important;
+    filter: none !important;
+    background:
+      radial-gradient(ellipse at 40% 44%, transparent 22%, rgba(5, 11, 22, 0.30) 60%, rgba(5, 11, 22, 0.74) 100%),
+      linear-gradient(180deg, rgba(5, 11, 22, 0.58) 0%, rgba(5, 11, 22, 0.20) 26%, rgba(5, 11, 22, 0.48) 66%, rgba(5, 11, 22, 0.92) 100%) !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The poster frame stands in; the film is never fetched or played. */
+    .hero-film { display: none !important; }
+    .hero::before { opacity: 0.4 !important; }
+  }
+</style>
 </head>
 <body>
 
@@ -2483,6 +2527,14 @@ section{padding:90px 56px;}
      HERO with Tulsa skyline image
      ═══════════════════════════════════════════════════ -->
 <header class="hero" id="top">
+  <!-- Landing film, generated with Higgsfield and served from its CDN.
+       To self-host instead: download both URLs below, save them as
+       assets/media/hero.mp4 and assets/media/hero-poster.jpg, and change the
+       two absolute URLs here back to those relative paths. Nothing else changes. -->
+  <video class="hero-film" id="heroFilm" loop muted playsinline preload="auto"
+         poster="https://d2ol7oe51mr4n9.cloudfront.net/user_3Ib12kJDmqhgwXUWZhM6avxn4s9/ead8ccda-13c5-434f-858a-b4012bfdbb1e.jpg" aria-hidden="true" tabindex="-1">
+    <source src="https://d2ol7oe51mr4n9.cloudfront.net/user_3Ib12kJDmqhgwXUWZhM6avxn4s9/201a8c76-1461-4d4e-a87a-63288d680a18.mp4" type="video/mp4">
+  </video>
   <div class="hero-content">
     <div class="hero-eyebrow label">A Private Family Office · Tulsa, Oklahoma</div>
     <h1 id="heroTypedHeadline" class="hero-typing-target">Quality, structure,<br>and <span class="ital">long-term foresight</span><br>in the management of capital.</h1>
@@ -3390,6 +3442,43 @@ section{padding:90px 56px;}
 
 
 
+
+<script id="pdcm-hero-film-js">
+(function () {
+  "use strict";
+  var film = document.getElementById("heroFilm");
+  if (!film) return;
+
+  // Reduced motion: leave the poster in place and never fetch the film.
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    film.removeAttribute("preload");
+    var src = film.querySelector("source");
+    if (src) src.removeAttribute("src");
+    return;
+  }
+
+  var reveal = function () { film.classList.add("is-playing"); };
+  if (film.readyState >= 2) reveal();
+  film.addEventListener("loadeddata", reveal, { once: true });
+
+  var play = function () {
+    var p = film.play();
+    if (p && p.catch) p.catch(function () { /* poster stands in */ });
+  };
+  play();
+
+  // Nothing to play while the hero is off screen or the tab is hidden.
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) film.pause(); else play();
+  });
+
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) play(); else film.pause();
+    }, { threshold: 0 }).observe(film);
+  }
+})();
+</script>
 
 </body>
 </html>
