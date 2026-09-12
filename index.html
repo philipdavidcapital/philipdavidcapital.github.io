@@ -2460,48 +2460,54 @@ section{padding:90px 56px;}
 .statement::before { font-family: 'Cormorant SC', serif; }
 
 </style>
-<style id="pdcm-hero-film-css">
-  /* ── Landing film ──────────────────────────────────────────────────
-     The hero previously carried five overlapping animations (background
-     drift, diagonal sheen, orb, and a drifting vignette) all tuned to
-     20-50s at low opacity. Nothing had a trackable edge, so they averaged
-     out and the hero read as still. A single moving image replaces that. */
+<style id="pdcm-hero-field-css">
+  /* ── Landing field ─────────────────────────────────────────────────
+     A generative light field, drawn in the browser from mathematics.
+     There is no image, video or model to load: nothing to host, nothing
+     to expire, and it stays sharp at any resolution.
 
-  .hero-film {
+     It replaces five overlapping animations that were cancelling each
+     other out (background drift, diagonal sheen, an orb, and a drifting
+     vignette, plus three keyframe sets defined and never used). All were
+     slow translates of blurred gradients, so none had a trackable edge
+     and together they averaged into stillness. */
+
+  .hero-field {
     position: absolute;
     inset: 0;
     z-index: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    display: block;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 1.8s ease;
+    transition: opacity 1.6s ease;
   }
 
-  .hero-film.is-playing { opacity: 1; }
+  .hero-field.is-lit { opacity: 1; }
 
-  /* The diagonal sheen competed with the footage; hold it well back so it
-     reads as a glaze on the film rather than a second moving layer. */
-  .hero::before { opacity: 0.24 !important; }
+  /* The sheen competed with the field; hold it back to a glaze. */
+  .hero::before { opacity: 0.18 !important; }
 
-  /* Restore the vignette to full strength and stop it drifting. At 0.30 it
-     was barely darkening anything, and animating the vignette itself partly
-     cancelled the layers beneath it. Full strength is what keeps the
-     headline legible over moving footage. */
+  /* Restore the vignette to full strength and stop it drifting. Held at
+     0.30 it barely darkened anything, and animating the vignette itself
+     partly cancelled the layers beneath. Full strength is what keeps the
+     headline legible over a moving ground. */
   .hero::after {
-    opacity: 0.95 !important;
+    opacity: 0.92 !important;
     animation: none !important;
     filter: none !important;
     background:
-      radial-gradient(ellipse at 40% 44%, transparent 22%, rgba(5, 11, 22, 0.30) 60%, rgba(5, 11, 22, 0.74) 100%),
-      linear-gradient(180deg, rgba(5, 11, 22, 0.58) 0%, rgba(5, 11, 22, 0.20) 26%, rgba(5, 11, 22, 0.48) 66%, rgba(5, 11, 22, 0.92) 100%) !important;
+      linear-gradient(90deg, rgba(5, 11, 22, 0.62) 0%, rgba(5, 11, 22, 0.40) 34%, rgba(5, 11, 22, 0.06) 62%, transparent 100%),
+      linear-gradient(180deg, rgba(5, 11, 22, 0.46) 0%, rgba(5, 11, 22, 0.10) 26%, rgba(5, 11, 22, 0.34) 66%, rgba(5, 11, 22, 0.88) 100%) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    /* The poster frame stands in; the film is never fetched or played. */
-    .hero-film { display: none !important; }
-    .hero::before { opacity: 0.4 !important; }
+    /* One still frame is drawn; nothing animates and the cursor is ignored. */
+    .hero::before { opacity: 0.3 !important; }
+    /* The hero element itself carries a background drift keyframe; it has to
+       stop here too, not only the layers above it. */
+    .hero { animation: none !important; }
   }
 </style>
 </head>
@@ -2527,14 +2533,7 @@ section{padding:90px 56px;}
      HERO with Tulsa skyline image
      ═══════════════════════════════════════════════════ -->
 <header class="hero" id="top">
-  <!-- Landing film, generated with Higgsfield and served from its CDN.
-       To self-host instead: download both URLs below, save them as
-       assets/media/hero.mp4 and assets/media/hero-poster.jpg, and change the
-       two absolute URLs here back to those relative paths. Nothing else changes. -->
-  <video class="hero-film" id="heroFilm" loop muted playsinline preload="auto"
-         poster="https://d2ol7oe51mr4n9.cloudfront.net/user_3Ib12kJDmqhgwXUWZhM6avxn4s9/ead8ccda-13c5-434f-858a-b4012bfdbb1e.jpg" aria-hidden="true" tabindex="-1">
-    <source src="https://d2ol7oe51mr4n9.cloudfront.net/user_3Ib12kJDmqhgwXUWZhM6avxn4s9/201a8c76-1461-4d4e-a87a-63288d680a18.mp4" type="video/mp4">
-  </video>
+  <canvas class="hero-field" id="heroField" aria-hidden="true"></canvas>
   <div class="hero-content">
     <div class="hero-eyebrow label">A Private Family Office · Tulsa, Oklahoma</div>
     <h1 id="heroTypedHeadline" class="hero-typing-target">Quality, structure,<br>and <span class="ital">long-term foresight</span><br>in the management of capital.</h1>
@@ -3443,42 +3442,190 @@ section{padding:90px 56px;}
 
 
 
-<script id="pdcm-hero-film-js">
+<script id="pdcm-hero-field-js">
 (function () {
   "use strict";
-  var film = document.getElementById("heroFilm");
-  if (!film) return;
 
-  // Reduced motion: leave the poster in place and never fetch the film.
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    film.removeAttribute("preload");
-    var src = film.querySelector("source");
-    if (src) src.removeAttribute("src");
-    return;
+  var canvas = document.getElementById("heroField");
+  if (!canvas) return;
+
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* WebGL1 for reach. A failure at any point leaves the hero's existing
+     CSS gradient in place, which is why the canvas starts at opacity 0. */
+  /* preserveDrawingBuffer only on the reduced-motion path: there we draw a
+     single frame, and without it the compositor may discard the backbuffer
+     and leave the canvas blank. The animated path redraws every frame and
+     keeps the faster default. */
+  var attrs = { antialias: false, alpha: false, depth: false,
+                preserveDrawingBuffer: reduce };
+  var gl = canvas.getContext("webgl", attrs)
+        || canvas.getContext("experimental-webgl", attrs);
+  if (!gl) return;
+
+  var VERT =
+    "attribute vec2 a;void main(){gl_Position=vec4(a,0.0,1.0);}";
+
+  var FRAG = [
+    "precision highp float;",
+    "uniform vec2 u_res;uniform float u_time;uniform vec2 u_mouse;",
+
+    "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}",
+
+    "float noise(vec2 p){",
+    "  vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.0-2.0*f);",
+    "  return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),u.x),",
+    "             mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),u.x),u.y);}",
+
+    /* Five octaves of value noise, each rotated so the layers never line
+       up into a visible grid. */
+    "float fbm(vec2 p){",
+    "  float v=0.0,a=0.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);",
+    "  for(int i=0;i<5;i++){v+=a*noise(p);p=m*p;a*=0.5;}return v;}",
+
+    "void main(){",
+    "  vec2 p=(gl_FragCoord.xy-0.5*u_res)/u_res.y;",
+    "  float t=u_time*0.055;",
+
+    /* Domain warping: noise fed through noise. This is what makes the
+       field read as drifting light rather than as a texture. */
+    "  vec2 q=vec2(fbm(p*1.35+vec2(0.0,t)),fbm(p*1.35+vec2(5.2,1.3-t)));",
+    "  vec2 r=vec2(fbm(p*1.55+3.0*q+vec2(1.7,9.2)+0.15*t),",
+    "              fbm(p*1.55+3.0*q+vec2(8.3,2.8)-0.12*t));",
+    "  float f=fbm(p*1.5+2.4*r);",
+
+    /* Two warm sources on different periods. One blob reads as a static
+       gradient no matter how it moves; two crossing each other is what
+       makes the field legibly alive. Both sit right of centre, in the open
+       half of the hero, so the headline never needs a scrim over it. */
+    "  vec2 lc=vec2(0.44+0.09*sin(t*1.6),0.11+0.06*cos(t*1.25))+u_mouse*vec2(0.34,0.26);",
+    "  float glow=exp(-length(p-lc)*2.05);",
+    "  vec2 lc2=vec2(0.24+0.13*sin(t*0.9+2.1),-0.20+0.10*cos(t*1.05+0.6))+u_mouse*vec2(0.20,0.15);",
+    "  float glow2=exp(-length(p-lc2)*2.60);",
+    "  glow=glow+glow2*0.55;",
+
+    /* Guideline palette only: ink, Midnight Navy, Harbor Slate, Soft Gold. */
+    "  vec3 ink=vec3(0.039,0.078,0.141);",
+    "  vec3 navy=vec3(0.098,0.173,0.267);",
+    "  vec3 slate=vec3(0.184,0.278,0.408);",
+    "  vec3 gold=vec3(0.918,0.816,0.612);",
+
+    "  vec3 col=mix(ink,navy,smoothstep(0.22,0.86,f));",
+    "  col=mix(col,slate,smoothstep(0.54,1.0,f)*0.52);",
+
+    /* Gold has to be mixed toward, not merely added. Adding it over navy only
+       raises every channel and the result stays blue: measured on the real
+       output, red never once exceeded blue, so the light read as a pale wash
+       instead of as warmth. Mixing pulls blue down and gives an actually warm
+       core. Sparing, per the guideline role, is about area, not saturation:
+       the falloff is tight, so gold is a small minority of the frame. */
+    "  float core=pow(glow,1.55)*(0.62+0.38*f);",
+    "  col=mix(col,gold*0.80,clamp(core*0.66,0.0,0.62));",
+    "  col+=gold*glow*(0.055+0.085*f);",
+
+    "  float vig=smoothstep(1.30,0.22,length(p*vec2(0.82,1.0)));",
+    "  col*=0.54+0.46*vig;",
+    "  col+=(hash(gl_FragCoord.xy+u_time)-0.5)*0.015;",
+
+    "  gl_FragColor=vec4(col,1.0);}"
+  ].join("\n");
+
+  function compile(type, src) {
+    var sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) return null;
+    return sh;
   }
 
-  var reveal = function () { film.classList.add("is-playing"); };
-  if (film.readyState >= 2) reveal();
-  film.addEventListener("loadeddata", reveal, { once: true });
+  var vs = compile(gl.VERTEX_SHADER, VERT);
+  var fs = compile(gl.FRAGMENT_SHADER, FRAG);
+  if (!vs || !fs) return;
 
-  var play = function () {
-    var p = film.play();
-    if (p && p.catch) p.catch(function () { /* poster stands in */ });
-  };
+  var prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+  gl.useProgram(prog);
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  var loc = gl.getAttribLocation(prog, "a");
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  var uRes = gl.getUniformLocation(prog, "u_res");
+  var uTime = gl.getUniformLocation(prog, "u_time");
+  var uMouse = gl.getUniformLocation(prog, "u_mouse");
+
+  var mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+  var raf = null, running = false, t0 = null;
+
+  function size() {
+    /* Capped at 1.5x: the field is soft by nature, so extra pixels cost
+       fill rate and buy nothing visible. */
+    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    var r = canvas.getBoundingClientRect();
+    var w = Math.max(1, Math.round(r.width * dpr));
+    var h = Math.max(1, Math.round(r.height * dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w; canvas.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+  }
+
+  function draw(seconds) {
+    mouse.x += (mouse.tx - mouse.x) * 0.04;
+    mouse.y += (mouse.ty - mouse.y) * 0.04;
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform1f(uTime, seconds);
+    gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function frame(now) {
+    if (t0 === null) t0 = now;
+    draw((now - t0) / 1000);
+    raf = window.requestAnimationFrame(frame);
+  }
+
+  function play() { if (running || reduce) return; running = true; raf = window.requestAnimationFrame(frame); }
+  function pause() { running = false; if (raf) window.cancelAnimationFrame(raf); raf = null; }
+
+  size();
+  draw(0);
+  canvas.classList.add("is-lit");
   play();
 
-  // Nothing to play while the hero is off screen or the tab is hidden.
+  var rt = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { size(); if (!running) draw(0); }, 150);
+  });
+
+  if (!reduce) {
+    window.addEventListener("pointermove", function (e) {
+      mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2;
+      mouse.ty = -(e.clientY / window.innerHeight - 0.5) * 2;
+    }, { passive: true });
+  }
+
+  /* Nothing to draw while the hero is off screen or the tab is hidden. */
   document.addEventListener("visibilitychange", function () {
-    if (document.hidden) film.pause(); else play();
+    if (document.hidden) { pause(); return; }
+    if (reduce) draw(0); else play();
   });
 
   if (window.IntersectionObserver) {
     new IntersectionObserver(function (entries) {
-      if (entries[0].isIntersecting) play(); else film.pause();
-    }, { threshold: 0 }).observe(film);
+      if (entries[0].isIntersecting) play(); else pause();
+    }, { threshold: 0 }).observe(canvas);
   }
 })();
 </script>
 
 </body>
+
 </html>
