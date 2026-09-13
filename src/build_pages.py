@@ -106,6 +106,27 @@ EXTRA_CSS = """
    whole effect. */
 
 /* Nothing moves under reduced motion, so the join is simply always made. */
+/* ── Room for the fade ────────────────────────────
+   The hero was exactly one screen tall with its text sitting 100px off the
+   bottom, which left the fade nowhere to go: at its previous length it
+   already ran 182px up behind the sub-headline, and running it further would
+   have washed the text out rather than made the transition smoother.
+
+   The hero is taller than the window now, and its text is held higher within
+   it. The extra height is empty ground below the text for the gradient to
+   occupy, so the fade can be long without passing behind anything that has
+   to stay legible. At rest the window still shows a full screen of hero with
+   no fade at all; the fade is what you scroll into. */
+.hero {
+  height: 130vh;
+  min-height: 960px;
+  padding-bottom: max(200px, 42vh);
+}
+
+@media (max-width: 700px) {
+  .hero { height: 124vh; min-height: 700px; padding-bottom: max(150px, 34vh); }
+}
+
 /* ── Footer pages ─────────────────────────────────
    Cross-document view transitions. Chrome and Safari animate between the
    main page and a footer page; Firefox ignores the at-rule and navigates
@@ -210,8 +231,9 @@ DISSOLVE_JS = """
   var hero = document.querySelector(".hero");
   if (!hero) return;
 
-  var REACH = 0.34;   /* the fade's full length, as a fraction of the hero */
-  var OVER = 150;     /* how far the edge rises before the fade is full */
+  var REACH = 0.58;   /* the fade's full length, as a fraction of the hero */
+  var OVER = 260;     /* how far the edge rises before the fade is full */
+  var LEAD = 110;     /* how far before it crosses that the fade starts */
 
   var reduce = false;
   try {
@@ -224,8 +246,12 @@ DISSOLVE_JS = """
   function frame() {
     ticking = false;
     var h = hero.offsetHeight || window.innerHeight;
-    var risen = window.innerHeight - hero.getBoundingClientRect().bottom;
-    var t = risen / OVER;
+    /* Start a little before the edge actually crosses, so it arrives with a
+       fade already behind it rather than appearing as a line that then
+       softens. Measured: without the lead the first visible moment carried a
+       step of 24, against 5 everywhere after it. */
+    var risen = window.innerHeight - hero.getBoundingClientRect().bottom + LEAD;
+    var t = risen / (OVER + LEAD);
     t = t < 0 ? 0 : t > 1 ? 1 : t;
     var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
     if (Math.abs(v - last) < 0.004) return;

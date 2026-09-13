@@ -1279,8 +1279,9 @@
   var hero = document.querySelector(".hero");
   if (!hero) return;
 
-  var REACH = 0.34;   /* the fade's full length, as a fraction of the hero */
-  var OVER = 150;     /* how far the edge rises before the fade is full */
+  var REACH = 0.58;   /* the fade's full length, as a fraction of the hero */
+  var OVER = 260;     /* how far the edge rises before the fade is full */
+  var LEAD = 110;     /* how far before it crosses that the fade starts */
 
   var reduce = false;
   try {
@@ -1293,8 +1294,12 @@
   function frame() {
     ticking = false;
     var h = hero.offsetHeight || window.innerHeight;
-    var risen = window.innerHeight - hero.getBoundingClientRect().bottom;
-    var t = risen / OVER;
+    /* Start a little before the edge actually crosses, so it arrives with a
+       fade already behind it rather than appearing as a line that then
+       softens. Measured: without the lead the first visible moment carried a
+       step of 24, against 5 everywhere after it. */
+    var risen = window.innerHeight - hero.getBoundingClientRect().bottom + LEAD;
+    var t = risen / (OVER + LEAD);
     t = t < 0 ? 0 : t > 1 ? 1 : t;
     var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
     if (Math.abs(v - last) < 0.004) return;

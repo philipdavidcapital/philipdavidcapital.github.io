@@ -2780,7 +2780,7 @@ footer .foot-top { padding-bottom: 22px; }
      headline legible over a moving ground. */
   .hero::after {
     /* This one rule owns everything layered over the light field, so the
-       dissolve at the hero's foot lives here rather than in a later rule that
+       fade at the hero's foot lives here rather than in a later rule that
        would have to out-shout this one's !important.
 
        What scroll drives is the LENGTH of the fade, not its opacity. Fading
@@ -2788,10 +2788,16 @@ footer .foot-top { padding-bottom: 22px; }
        edge are a mix of the dark field and the paper below, while the pixels
        below it are paper outright, so the difference between them is a hard
        line whose contrast is simply (1 - opacity) x the full contrast.
-       Measured at 230 out of 255 early in the scroll. Fading the length
-       instead keeps the bottom-most row exactly the paper colour at every
-       moment, so the two sides always meet; scrolling only changes how far
-       up the page that meeting is prepared for.
+       Fading the length instead keeps the bottom-most row exactly the paper
+       colour at every moment, so the two sides always meet.
+
+       The curve is deliberately slow to start. The stops are placed as
+       fractions of the fade's length, and the first half of it barely lifts
+       off transparent -- under 6% where the sub-headline sits. That is what
+       lets the fade run most of the way up the hero without washing out the
+       text it passes behind. The change the eye reads is spread across the
+       lower half rather than crammed into the last hundred pixels, which is
+       what made the earlier version look abrupt even once the line was gone.
 
        The layer also used to carry opacity 0.92, which capped the fade at 88%
        and left the dark field showing through. It is opaque now and the
@@ -2803,9 +2809,14 @@ footer .foot-top { padding-bottom: 22px; }
       linear-gradient(180deg,
         transparent 0%,
         transparent calc(100% - var(--hero-fade, 0px)),
-        rgba(251, 250, 246, 0.22) calc(100% - var(--hero-fade, 0px) * 0.62),
-        rgba(251, 250, 246, 0.68) calc(100% - var(--hero-fade, 0px) * 0.28),
-        rgba(251, 250, 246, 0.93) calc(100% - var(--hero-fade, 0px) * 0.08),
+        rgba(251, 250, 246, 0.012) calc(100% - var(--hero-fade, 0px) * 0.76),
+        rgba(251, 250, 246, 0.055) calc(100% - var(--hero-fade, 0px) * 0.56),
+        rgba(251, 250, 246, 0.150) calc(100% - var(--hero-fade, 0px) * 0.42),
+        rgba(251, 250, 246, 0.320) calc(100% - var(--hero-fade, 0px) * 0.30),
+        rgba(251, 250, 246, 0.530) calc(100% - var(--hero-fade, 0px) * 0.20),
+        rgba(251, 250, 246, 0.740) calc(100% - var(--hero-fade, 0px) * 0.12),
+        rgba(251, 250, 246, 0.900) calc(100% - var(--hero-fade, 0px) * 0.06),
+        rgba(251, 250, 246, 0.972) calc(100% - var(--hero-fade, 0px) * 0.02),
         rgba(251, 250, 246, 1) 100%),
       linear-gradient(90deg, rgba(5, 11, 22, 0.570) 0%, rgba(5, 11, 22, 0.368) 34%, rgba(5, 11, 22, 0.055) 62%, transparent 100%),
       linear-gradient(180deg, rgba(5, 11, 22, 0.423) 0%, rgba(5, 11, 22, 0.092) 26%, rgba(5, 11, 22, 0.313) 66%, rgba(5, 11, 22, 0.810) 100%) !important;
