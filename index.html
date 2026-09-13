@@ -2500,6 +2500,209 @@ section{padding:90px 56px;}
 .statement::before { font-family: 'Cormorant SC', serif; }
 
 </style>
+<style id="pdcm-apply-css">
+/* Careers application form. Built from the site's own tokens so it reads as
+   part of the page rather than as an embedded widget: Cormorant SC is left
+   for the headings the modal already sets, labels and controls are Lato, and
+   the only accent is Soft Gold on focus. */
+
+.pdcm-apply { margin-top: 22px; }
+
+.pdcm-apply-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 620px) {
+  .pdcm-apply-row { grid-template-columns: 1fr; gap: 0; }
+}
+
+.pdcm-field { margin-bottom: 18px; }
+
+.pdcm-field label {
+  display: block;
+  font-family: 'Lato', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.pdcm-field label span { color: var(--gold); margin-left: 2px; }
+
+.pdcm-field input[type="text"],
+.pdcm-field input[type="email"],
+.pdcm-field input[type="tel"],
+.pdcm-field select,
+.pdcm-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Lato', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--navy);
+  background: #fff;
+  border: 1px solid var(--platinum);
+  border-radius: 0;
+  padding: 11px 13px;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.pdcm-field textarea { line-height: 1.7; resize: vertical; min-height: 118px; }
+
+/* appearance:none strips the native arrow, so the caret is drawn back in as a
+   Midnight Navy chevron. Inlined as a data URI: the page makes no extra request. */
+.pdcm-field select {
+  padding-right: 38px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%23192c44' stroke-width='1.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.pdcm-field select:invalid, .pdcm-field select option[value=""] { color: var(--charcoal); }
+.pdcm-field select option[disabled] { color: var(--platinum); }
+
+.pdcm-field input:focus,
+.pdcm-field select:focus,
+.pdcm-field textarea:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 2px rgba(234, 208, 156, 0.55);
+}
+
+/* The native file control cannot be styled consistently across browsers, so
+   only its button half is restyled and the rest is left to the platform. */
+.pdcm-field input[type="file"] {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Lato', sans-serif;
+  font-size: 13px;
+  color: var(--charcoal);
+  background: #fff;
+  border: 1px solid var(--platinum);
+  padding: 9px 11px;
+}
+.pdcm-field input[type="file"]::file-selector-button {
+  font-family: 'Lato', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--navy);
+  background: transparent;
+  border: 1px solid var(--navy);
+  padding: 7px 14px;
+  margin-right: 12px;
+  cursor: pointer;
+  transition: background 0.22s ease, color 0.22s ease;
+}
+.pdcm-field input[type="file"]::file-selector-button:hover {
+  background: var(--navy);
+  color: var(--cream);
+}
+.pdcm-field input[type="file"]:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 2px rgba(234, 208, 156, 0.55);
+}
+
+.pdcm-required-note {
+  font-family: 'Lato', sans-serif;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--charcoal);
+  opacity: 0.8;
+  margin: 18px 0 0;
+  text-align: left;
+}
+.pdcm-required-note::first-letter { color: var(--gold); }
+
+.pdcm-note {
+  font-family: 'Lato', sans-serif;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--charcoal);
+  opacity: 0.78;
+  margin: 7px 0 0;
+  text-align: left;
+}
+
+.pdcm-err {
+  font-family: 'Lato', sans-serif;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: #8c2f2f;
+  margin: 7px 0 0;
+  text-align: left;
+}
+.pdcm-field.is-invalid input,
+.pdcm-field.is-invalid select,
+.pdcm-field.is-invalid textarea { border-color: #8c2f2f; }
+
+.pdcm-consent {
+  font-family: 'Lato', sans-serif;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--charcoal);
+  opacity: 0.8;
+  margin: 22px 0 0;
+  text-align: left;
+}
+
+/* Matches the entry notice's acknowledgement button. */
+.pdcm-apply-send {
+  margin-top: 20px;
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  color: var(--cream);
+  font-family: 'Lato', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 14px 30px;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.pdcm-apply-send:hover { background: transparent; color: var(--navy); }
+.pdcm-apply-send:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(234, 208, 156, 0.75);
+}
+.pdcm-apply-send[disabled] { opacity: 0.55; cursor: default; }
+.pdcm-apply-send[disabled]:hover { background: var(--navy); color: var(--cream); }
+
+.pdcm-form-status {
+  font-family: 'Lato', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: #8c2f2f;
+  margin: 14px 0 0;
+  text-align: left;
+}
+
+.pdcm-apply-done h3 { margin-top: 8px; }
+
+/* On narrow screens the modal's close button sits at right:16px and is 32px
+   wide, and the content scrolls underneath it rather than past it -- so
+   without a gutter a tap on the right edge of a control dismisses the modal
+   instead of focusing the field. The prose above wraps harmlessly under the
+   button; only the form needs the clearance. */
+@media (max-width: 700px) {
+  .pdcm-apply, .pdcm-required-note { padding-right: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdcm-field input,
+  .pdcm-field select,
+  .pdcm-field textarea,
+  .pdcm-apply-send,
+  .pdcm-field input[type="file"]::file-selector-button { transition: none; }
+}
+</style>
+
 <style id="pdcm-footer-spacing-css">
 /* The lockup sat 38px below the footer's top edge but 65px above the rule.
    The extra came from a 16px margin under the lockup, left over for a
@@ -2940,19 +3143,286 @@ footer .foot-top { padding-bottom: 22px; }
     <div class="disclaimer-content">
       <h2 id="careers-title">Careers</h2>
 
-      <h3>The Firm</h3>
-      <p>Philip David Capital Management is a small firm by design. We do not intend to grow through headcount. We grow through judgment, and we add to the team only when the work cannot otherwise be done well. Hiring is therefore infrequent and deliberate.</p>
+      <p>Philip David Capital Management is a small firm by design. We do not intend to grow through headcount; we grow through judgment, and we add to the team only when the work cannot otherwise be done well. Hiring is therefore infrequent and deliberate, and the firm does not advertise specific openings.</p>
 
-      <h3>What We Look For</h3>
-      <p>We look for individuals of evident intellectual honesty, who are comfortable with their own counsel and patient enough to hold it. We look for people who think carefully, write clearly, and prefer the work itself to its commentary. We look for those whose habits of mind are oriented toward years rather than quarters. Formal credentials are noted but are not, on their own, persuasive.</p>
+      <p>We look for individuals of evident intellectual honesty, comfortable with their own counsel and patient enough to hold it &mdash; people who think carefully, write clearly, and prefer the work itself to its commentary. The firm's work spans investment research, portfolio analysis, accounting and operational functions, investor relations, and the administration of the General Partner. Roles are not narrowly defined.</p>
 
-      <h3>The Work</h3>
-      <p>The firm's work spans investment research, portfolio analysis, accounting and operational functions, investor relations, and the day-to-day administration of the General Partner. Roles are not narrowly defined. The firm expects its members to think across functions and to take responsibility for the quality of every output that bears the firm's name.</p>
+      <p>Exceptional candidates whose orientation aligns with the firm's are welcome to introduce themselves below at any time, whether or not a position is currently available. A r&eacute;sum&eacute; is sufficient; a letter is welcome but not required. Applications are read personally, and we respond to thoughtful correspondence within a reasonable time.</p>
 
-      <h3>Inquiries</h3>
-      <p>The firm does not maintain a formal recruiting process and does not advertise specific openings. Exceptional candidates whose orientation aligns with the firm's are welcome to introduce themselves at any time, whether or not a position is currently available. Correspondence is read personally and answered when a thoughtful response can be given.</p>
+      <p class="pdcm-required-note">* indicates a required field</p>
 
-      <p>Inquiries may be directed to clientservices@philipdavidcapital.com with a brief letter and any materials that the candidate believes are relevant. We respond to thoughtful correspondence within a reasonable time.</p>
+      <form class="pdcm-apply" id="pdcmApply" method="POST" enctype="multipart/form-data" novalidate>
+        <div class="pdcm-apply-row">
+          <div class="pdcm-field">
+            <label for="pa-first">First Name <span aria-hidden="true">*</span></label>
+            <input type="text" id="pa-first" name="First Name" autocomplete="given-name" required>
+            <p class="pdcm-err" data-for="pa-first" hidden>Please enter your first name.</p>
+          </div>
+          <div class="pdcm-field">
+            <label for="pa-last">Last Name <span aria-hidden="true">*</span></label>
+            <input type="text" id="pa-last" name="Last Name" autocomplete="family-name" required>
+            <p class="pdcm-err" data-for="pa-last" hidden>Please enter your last name.</p>
+          </div>
+        </div>
+
+        <div class="pdcm-field">
+          <label for="pa-email">Email <span aria-hidden="true">*</span></label>
+          <input type="email" id="pa-email" name="Email" autocomplete="email" required>
+          <p class="pdcm-err" data-for="pa-email" hidden>Please enter a valid email address.</p>
+        </div>
+
+        <div class="pdcm-apply-row">
+          <div class="pdcm-field">
+            <label for="pa-country">Country <span aria-hidden="true">*</span></label>
+            <select id="pa-country" name="Country" autocomplete="country-name" required>
+              <option value="">Select…</option>
+              <option>United States</option>
+              <option>United Kingdom</option>
+              <option>Canada</option>
+              <option disabled>──────────</option>
+              <option>Afghanistan</option>
+              <option>Albania</option>
+              <option>Algeria</option>
+              <option>Andorra</option>
+              <option>Angola</option>
+              <option>Antigua and Barbuda</option>
+              <option>Argentina</option>
+              <option>Armenia</option>
+              <option>Australia</option>
+              <option>Austria</option>
+              <option>Azerbaijan</option>
+              <option>Bahamas</option>
+              <option>Bahrain</option>
+              <option>Bangladesh</option>
+              <option>Barbados</option>
+              <option>Belarus</option>
+              <option>Belgium</option>
+              <option>Belize</option>
+              <option>Benin</option>
+              <option>Bhutan</option>
+              <option>Bolivia</option>
+              <option>Bosnia and Herzegovina</option>
+              <option>Botswana</option>
+              <option>Brazil</option>
+              <option>Brunei</option>
+              <option>Bulgaria</option>
+              <option>Burkina Faso</option>
+              <option>Burundi</option>
+              <option>Cabo Verde</option>
+              <option>Cambodia</option>
+              <option>Cameroon</option>
+              <option>Canada</option>
+              <option>Central African Republic</option>
+              <option>Chad</option>
+              <option>Chile</option>
+              <option>China</option>
+              <option>Colombia</option>
+              <option>Comoros</option>
+              <option>Congo</option>
+              <option>Costa Rica</option>
+              <option>Côte d'Ivoire</option>
+              <option>Croatia</option>
+              <option>Cuba</option>
+              <option>Cyprus</option>
+              <option>Czechia</option>
+              <option>Democratic Republic of the Congo</option>
+              <option>Denmark</option>
+              <option>Djibouti</option>
+              <option>Dominica</option>
+              <option>Dominican Republic</option>
+              <option>Ecuador</option>
+              <option>Egypt</option>
+              <option>El Salvador</option>
+              <option>Equatorial Guinea</option>
+              <option>Eritrea</option>
+              <option>Estonia</option>
+              <option>Eswatini</option>
+              <option>Ethiopia</option>
+              <option>Fiji</option>
+              <option>Finland</option>
+              <option>France</option>
+              <option>Gabon</option>
+              <option>Gambia</option>
+              <option>Georgia</option>
+              <option>Germany</option>
+              <option>Ghana</option>
+              <option>Greece</option>
+              <option>Grenada</option>
+              <option>Guatemala</option>
+              <option>Guinea</option>
+              <option>Guinea-Bissau</option>
+              <option>Guyana</option>
+              <option>Haiti</option>
+              <option>Honduras</option>
+              <option>Hong Kong</option>
+              <option>Hungary</option>
+              <option>Iceland</option>
+              <option>India</option>
+              <option>Indonesia</option>
+              <option>Iran</option>
+              <option>Iraq</option>
+              <option>Ireland</option>
+              <option>Israel</option>
+              <option>Italy</option>
+              <option>Jamaica</option>
+              <option>Japan</option>
+              <option>Jordan</option>
+              <option>Kazakhstan</option>
+              <option>Kenya</option>
+              <option>Kiribati</option>
+              <option>Kuwait</option>
+              <option>Kyrgyzstan</option>
+              <option>Laos</option>
+              <option>Latvia</option>
+              <option>Lebanon</option>
+              <option>Lesotho</option>
+              <option>Liberia</option>
+              <option>Libya</option>
+              <option>Liechtenstein</option>
+              <option>Lithuania</option>
+              <option>Luxembourg</option>
+              <option>Macao</option>
+              <option>Madagascar</option>
+              <option>Malawi</option>
+              <option>Malaysia</option>
+              <option>Maldives</option>
+              <option>Mali</option>
+              <option>Malta</option>
+              <option>Marshall Islands</option>
+              <option>Mauritania</option>
+              <option>Mauritius</option>
+              <option>Mexico</option>
+              <option>Micronesia</option>
+              <option>Moldova</option>
+              <option>Monaco</option>
+              <option>Mongolia</option>
+              <option>Montenegro</option>
+              <option>Morocco</option>
+              <option>Mozambique</option>
+              <option>Myanmar</option>
+              <option>Namibia</option>
+              <option>Nauru</option>
+              <option>Nepal</option>
+              <option>Netherlands</option>
+              <option>New Zealand</option>
+              <option>Nicaragua</option>
+              <option>Niger</option>
+              <option>Nigeria</option>
+              <option>North Korea</option>
+              <option>North Macedonia</option>
+              <option>Norway</option>
+              <option>Oman</option>
+              <option>Pakistan</option>
+              <option>Palau</option>
+              <option>Palestine</option>
+              <option>Panama</option>
+              <option>Papua New Guinea</option>
+              <option>Paraguay</option>
+              <option>Peru</option>
+              <option>Philippines</option>
+              <option>Poland</option>
+              <option>Portugal</option>
+              <option>Qatar</option>
+              <option>Romania</option>
+              <option>Russia</option>
+              <option>Rwanda</option>
+              <option>Saint Kitts and Nevis</option>
+              <option>Saint Lucia</option>
+              <option>Saint Vincent and the Grenadines</option>
+              <option>Samoa</option>
+              <option>San Marino</option>
+              <option>Sao Tome and Principe</option>
+              <option>Saudi Arabia</option>
+              <option>Senegal</option>
+              <option>Serbia</option>
+              <option>Seychelles</option>
+              <option>Sierra Leone</option>
+              <option>Singapore</option>
+              <option>Slovakia</option>
+              <option>Slovenia</option>
+              <option>Solomon Islands</option>
+              <option>Somalia</option>
+              <option>South Africa</option>
+              <option>South Korea</option>
+              <option>South Sudan</option>
+              <option>Spain</option>
+              <option>Sri Lanka</option>
+              <option>Sudan</option>
+              <option>Suriname</option>
+              <option>Sweden</option>
+              <option>Switzerland</option>
+              <option>Syria</option>
+              <option>Taiwan</option>
+              <option>Tajikistan</option>
+              <option>Tanzania</option>
+              <option>Thailand</option>
+              <option>Timor-Leste</option>
+              <option>Togo</option>
+              <option>Tonga</option>
+              <option>Trinidad and Tobago</option>
+              <option>Tunisia</option>
+              <option>Turkey</option>
+              <option>Turkmenistan</option>
+              <option>Tuvalu</option>
+              <option>Uganda</option>
+              <option>Ukraine</option>
+              <option>United Arab Emirates</option>
+              <option>United Kingdom</option>
+              <option>United States</option>
+              <option>Uruguay</option>
+              <option>Uzbekistan</option>
+              <option>Vanuatu</option>
+              <option>Vatican City</option>
+              <option>Venezuela</option>
+              <option>Vietnam</option>
+              <option>Yemen</option>
+              <option>Zambia</option>
+              <option>Zimbabwe</option>
+            </select>
+            <p class="pdcm-err" data-for="pa-country" hidden>Please select a country.</p>
+          </div>
+          <div class="pdcm-field">
+            <label for="pa-phone">Phone <span aria-hidden="true">*</span></label>
+            <input type="tel" id="pa-phone" name="Phone" autocomplete="tel" required>
+            <p class="pdcm-err" data-for="pa-phone" hidden>Please enter a telephone number.</p>
+          </div>
+        </div>
+
+        <div class="pdcm-field">
+          <label for="pa-city">Location (City) <span aria-hidden="true">*</span></label>
+          <input type="text" id="pa-city" name="Location (City)" autocomplete="address-level2" required>
+          <p class="pdcm-err" data-for="pa-city" hidden>Please enter a city.</p>
+        </div>
+
+        <div class="pdcm-field">
+          <label for="pa-resume">R&eacute;sum&eacute; / CV <span aria-hidden="true">*</span></label>
+          <input type="file" id="pa-resume" name="Resume" accept=".pdf,.doc,.docx,.txt,.rtf" required>
+          <p class="pdcm-note">Accepted file types: pdf, doc, docx, txt, rtf. Maximum 5&nbsp;MB.</p>
+          <p class="pdcm-err" data-for="pa-resume" hidden>Please attach a r&eacute;sum&eacute; in one of the accepted formats, under 5&nbsp;MB.</p>
+        </div>
+
+        <div class="pdcm-field">
+          <label for="pa-cover">Cover Letter</label>
+          <input type="file" id="pa-cover" name="Cover Letter" accept=".pdf,.doc,.docx,.txt,.rtf">
+          <p class="pdcm-note">Accepted file types: pdf, doc, docx, txt, rtf. Maximum 5&nbsp;MB.</p>
+          <p class="pdcm-err" data-for="pa-cover" hidden>Please use one of the accepted formats, under 5&nbsp;MB.</p>
+        </div>
+
+        <div class="pdcm-field">
+          <label for="pa-letter">Or enter your letter manually</label>
+          <textarea id="pa-letter" name="Letter" rows="6" placeholder="Optional."></textarea>
+        </div>
+
+        <p class="pdcm-consent">Information submitted here is used solely to consider your candidacy and is not shared outside the firm.</p>
+
+        <button type="submit" class="pdcm-apply-send">Submit Application</button>
+        <p class="pdcm-form-status" id="pdcmApplyStatus" role="status" aria-live="polite" hidden></p>
+      </form>
+
+      <div class="pdcm-apply-done" id="pdcmApplyDone" hidden>
+        <h3>Received</h3>
+        <p>Thank you. Your application has reached the firm and will be read personally. We respond to thoughtful correspondence within a reasonable time.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -3552,6 +4022,153 @@ footer .foot-top { padding-bottom: 22px; }
 
 
 
+
+<script id="pdcm-apply-js">
+(function () {
+  "use strict";
+
+  /* ── Where applications are delivered ──────────────────────────────
+     GitHub Pages serves static files and cannot send mail itself, so the
+     form posts to a form-relay service which emails the firm. FormSubmit
+     needs no account: the first submission triggers one confirmation mail
+     to the address below, and every submission after that is delivered.
+
+     The address is already published in the Contact section, so naming it
+     here exposes nothing new. To move to another relay (Formspree,
+     Web3Forms), change these two lines and nothing else. */
+  var ENDPOINT      = "https://formsubmit.co/jgarrison@philipdavidcapital.com";
+  var ENDPOINT_AJAX = "https://formsubmit.co/ajax/jgarrison@philipdavidcapital.com";
+
+  var MAX_BYTES = 5 * 1024 * 1024;
+  var ALLOWED = ["pdf", "doc", "docx", "txt", "rtf"];
+
+  var form = document.getElementById("pdcmApply");
+  if (!form) return;
+  var status = document.getElementById("pdcmApplyStatus");
+  var done = document.getElementById("pdcmApplyDone");
+  var button = form.querySelector(".pdcm-apply-send");
+
+  form.setAttribute("action", ENDPOINT);
+
+  /* FormSubmit's own options, and a honeypot it uses to drop bots. */
+  [["_subject", "Careers application — philipdavidcapital.com"],
+   ["_template", "table"],
+   ["_captcha", "false"],
+   ["_honey", ""]].forEach(function (pair) {
+    var i = document.createElement("input");
+    i.type = pair[0] === "_honey" ? "text" : "hidden";
+    i.name = pair[0];
+    i.value = pair[1];
+    if (pair[0] === "_honey") {
+      i.style.cssText = "position:absolute;left:-9999px;width:1px;height:1px;opacity:0";
+      i.tabIndex = -1;
+      i.setAttribute("aria-hidden", "true");
+      i.autocomplete = "off";
+    }
+    form.appendChild(i);
+  });
+
+  function fieldOf(el) { return el.closest(".pdcm-field"); }
+  function errFor(id) { return form.querySelector('.pdcm-err[data-for="' + id + '"]'); }
+
+  function setInvalid(el, bad) {
+    var f = fieldOf(el);
+    if (f) f.classList.toggle("is-invalid", bad);
+    var e = errFor(el.id);
+    if (e) e.hidden = !bad;
+    el.setAttribute("aria-invalid", bad ? "true" : "false");
+  }
+
+  function fileOk(input, required) {
+    var f = input.files && input.files[0];
+    if (!f) return !required;
+    var ext = (f.name.split(".").pop() || "").toLowerCase();
+    return ALLOWED.indexOf(ext) !== -1 && f.size <= MAX_BYTES;
+  }
+
+  function validate() {
+    var bad = null;
+    [["pa-first",   function (el) { return el.value.trim() !== ""; }],
+     ["pa-last",    function (el) { return el.value.trim() !== ""; }],
+     ["pa-email",   function (el) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim()); }],
+     ["pa-country", function (el) { return el.value.trim() !== ""; }],
+     /* Deliberately loose: international numbering varies too much to pattern
+        match, so only require some digits. */
+     ["pa-phone",   function (el) { return (el.value.match(/\d/g) || []).length >= 6; }],
+     ["pa-city",    function (el) { return el.value.trim() !== ""; }],
+     ["pa-resume",  function (el) { return fileOk(el, true); }],
+     ["pa-cover",   function (el) { return fileOk(el, false); }]
+    ].forEach(function (pair) {
+      var el = document.getElementById(pair[0]);
+      if (!el) return;
+      var ok = pair[1](el);
+      setInvalid(el, !ok);
+      if (!ok && !bad) bad = el;
+    });
+    return bad;
+  }
+
+  form.addEventListener("input", function (e) {
+    if (e.target.getAttribute("aria-invalid") === "true") setInvalid(e.target, false);
+  });
+  form.addEventListener("change", function (e) {
+    if (e.target.type === "file") {
+      setInvalid(e.target, !fileOk(e.target, e.target.hasAttribute("required")));
+    } else if (e.target.tagName === "SELECT" && e.target.value.trim() !== "") {
+      setInvalid(e.target, false);
+    }
+  });
+
+  function showStatus(msg) {
+    if (!status) return;
+    status.textContent = msg;
+    status.hidden = !msg;
+  }
+
+  function succeed() {
+    form.hidden = true;
+    if (done) {
+      done.hidden = false;
+      done.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    showStatus("");
+
+    var bad = validate();
+    if (bad) {
+      bad.focus();
+      showStatus("Please correct the highlighted fields.");
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Sending…";
+
+    /* Preferred path: post in the background so the candidate stays on the
+       page and gets a real answer. If that fails for any reason -- the relay
+       not yet activated, a network error, an attachment the background
+       endpoint will not take -- fall back to submitting the form normally,
+       which carries the file for certain and lands on the relay's own
+       confirmation. Nothing is silently lost either way. */
+    var data = new FormData(form);
+
+    fetch(ENDPOINT_AJAX, { method: "POST", body: data, headers: { Accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
+      .then(function (j) {
+        if (j && (j.success === "true" || j.success === true)) succeed();
+        else throw new Error("relay declined");
+      })
+      .catch(function () {
+        /* Native submit: guaranteed to carry the attachment. */
+        form.setAttribute("action", ENDPOINT);
+        HTMLFormElement.prototype.submit.call(form);
+      });
+  });
+})();
+</script>
 
 <script id="pdcm-hero-field-js">
 (function () {
