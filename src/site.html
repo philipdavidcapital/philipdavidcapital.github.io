@@ -3215,10 +3215,17 @@ footer .foot-top { padding-bottom: 22px; }
           </div>
         </div>
 
-        <div class="pdcm-field">
-          <label for="pa-email">Email <span aria-hidden="true">*</span></label>
-          <input type="email" id="pa-email" name="Email" autocomplete="email" required>
-          <p class="pdcm-err" data-for="pa-email" hidden>Please enter a valid email address.</p>
+        <div class="pdcm-apply-row">
+          <div class="pdcm-field">
+            <label for="pa-email">Email <span aria-hidden="true">*</span></label>
+            <input type="email" id="pa-email" name="Email" autocomplete="email" required>
+            <p class="pdcm-err" data-for="pa-email" hidden>Please enter a valid email address.</p>
+          </div>
+          <div class="pdcm-field">
+            <label for="pa-phone">Phone <span aria-hidden="true">*</span></label>
+            <input type="tel" id="pa-phone" name="Phone" autocomplete="tel" required>
+            <p class="pdcm-err" data-for="pa-phone" hidden>Please enter a telephone number.</p>
+          </div>
         </div>
 
         <div class="pdcm-apply-row">
@@ -3431,19 +3438,6 @@ footer .foot-top { padding-bottom: 22px; }
             </select>
             <p class="pdcm-err" data-for="pa-country" hidden>Please select a country.</p>
           </div>
-          <div class="pdcm-field">
-            <label for="pa-phone">Phone <span aria-hidden="true">*</span></label>
-            <input type="tel" id="pa-phone" name="Phone" autocomplete="tel" required>
-            <p class="pdcm-err" data-for="pa-phone" hidden>Please enter a telephone number.</p>
-          </div>
-        </div>
-
-        <div class="pdcm-apply-row">
-          <div class="pdcm-field">
-            <label for="pa-city">City <span aria-hidden="true">*</span></label>
-            <input type="text" id="pa-city" name="City" autocomplete="address-level2" required>
-            <p class="pdcm-err" data-for="pa-city" hidden>Please enter a city.</p>
-          </div>
           <div class="pdcm-field" id="pa-state-field">
             <label for="pa-state">State / Region</label>
             <!-- Replaced with a list of the country's own subdivisions once a
@@ -3452,6 +3446,12 @@ footer .foot-top { padding-bottom: 22px; }
                  reaches the firm reads the same either way. -->
             <input type="text" id="pa-state" name="State / Region" autocomplete="address-level1">
           </div>
+        </div>
+
+        <div class="pdcm-field">
+          <label for="pa-city">City <span aria-hidden="true">*</span></label>
+          <input type="text" id="pa-city" name="City" autocomplete="address-level2" required>
+          <p class="pdcm-err" data-for="pa-city" hidden>Please enter a city.</p>
         </div>
 
 
