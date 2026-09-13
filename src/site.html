@@ -2791,7 +2791,16 @@ footer .foot-top { padding-bottom: 22px; }
        Fading the length instead keeps the bottom-most row exactly the paper
        colour at every moment, so the two sides always meet.
 
-       The curve is deliberately slow to start. The stops are placed as
+       The curve is flat at both ends, and that matters as much as the
+       values. A gradient still climbing when it reaches the section below
+       ends on a change of slope, and the eye reads a change of slope as an
+       edge even when no step is there: measured at 0.5 of a level per pixel
+       above the join against 0.00 below it, which is the faint line that
+       survived every fix aimed at steps. The last tenth of the fade now
+       covers only the final two percent of the change, so it arrives almost
+       flat and the join has nothing to mark it.
+
+       The curve is also deliberately slow to start. The stops are placed as
        fractions of the fade's length, and the first half of it barely lifts
        off transparent -- under 6% where the sub-headline sits. That is what
        lets the fade run most of the way up the hero without washing out the
@@ -2809,14 +2818,20 @@ footer .foot-top { padding-bottom: 22px; }
       linear-gradient(180deg,
         transparent 0%,
         transparent calc(100% - var(--hero-fade, 0px)),
-        rgba(251, 250, 246, 0.012) calc(100% - var(--hero-fade, 0px) * 0.76),
-        rgba(251, 250, 246, 0.055) calc(100% - var(--hero-fade, 0px) * 0.56),
-        rgba(251, 250, 246, 0.150) calc(100% - var(--hero-fade, 0px) * 0.42),
-        rgba(251, 250, 246, 0.320) calc(100% - var(--hero-fade, 0px) * 0.30),
-        rgba(251, 250, 246, 0.530) calc(100% - var(--hero-fade, 0px) * 0.20),
-        rgba(251, 250, 246, 0.740) calc(100% - var(--hero-fade, 0px) * 0.12),
-        rgba(251, 250, 246, 0.900) calc(100% - var(--hero-fade, 0px) * 0.06),
-        rgba(251, 250, 246, 0.972) calc(100% - var(--hero-fade, 0px) * 0.02),
+        rgba(251, 250, 246, 0.010) calc(100% - var(--hero-fade, 0px) * 0.84),
+        rgba(251, 250, 246, 0.040) calc(100% - var(--hero-fade, 0px) * 0.70),
+        rgba(251, 250, 246, 0.095) calc(100% - var(--hero-fade, 0px) * 0.58),
+        rgba(251, 250, 246, 0.175) calc(100% - var(--hero-fade, 0px) * 0.48),
+        rgba(251, 250, 246, 0.275) calc(100% - var(--hero-fade, 0px) * 0.40),
+        rgba(251, 250, 246, 0.390) calc(100% - var(--hero-fade, 0px) * 0.33),
+        rgba(251, 250, 246, 0.510) calc(100% - var(--hero-fade, 0px) * 0.27),
+        rgba(251, 250, 246, 0.625) calc(100% - var(--hero-fade, 0px) * 0.22),
+        rgba(251, 250, 246, 0.725) calc(100% - var(--hero-fade, 0px) * 0.18),
+        rgba(251, 250, 246, 0.800) calc(100% - var(--hero-fade, 0px) * 0.15),
+        rgba(251, 250, 246, 0.870) calc(100% - var(--hero-fade, 0px) * 0.12),
+        rgba(251, 250, 246, 0.930) calc(100% - var(--hero-fade, 0px) * 0.10),
+        rgba(251, 250, 246, 0.980) calc(100% - var(--hero-fade, 0px) * 0.06),
+        rgba(251, 250, 246, 0.9955) calc(100% - var(--hero-fade, 0px) * 0.03),
         rgba(251, 250, 246, 1) 100%),
       linear-gradient(90deg, rgba(5, 11, 22, 0.570) 0%, rgba(5, 11, 22, 0.368) 34%, rgba(5, 11, 22, 0.055) 62%, transparent 100%),
       linear-gradient(180deg, rgba(5, 11, 22, 0.423) 0%, rgba(5, 11, 22, 0.092) 26%, rgba(5, 11, 22, 0.313) 66%, rgba(5, 11, 22, 0.810) 100%) !important;
@@ -3178,11 +3193,11 @@ footer .foot-top { padding-bottom: 22px; }
     <div class="disclaimer-content">
       <h2 id="careers-title">Careers</h2>
 
-      <p>Philip David Capital Management is a small firm by design. We do not intend to grow through headcount; we grow through judgment, and we add to the team only when the work cannot otherwise be done well. Hiring is therefore infrequent and deliberate, and the firm does not advertise specific openings.</p>
+      <p>Philip David Capital Management is a small firm and hires infrequently. We do not post specific openings.</p>
 
-      <p>We look for individuals of evident intellectual honesty, comfortable with their own counsel and patient enough to hold it &mdash; people who think carefully, write clearly, and prefer the work itself to its commentary. The firm's work spans investment research, portfolio analysis, accounting and operational functions, investor relations, and the administration of the General Partner. Roles are not narrowly defined.</p>
+      <p>The work spans investment research, portfolio analysis, accounting and operations, investor relations, and administration of the General Partner. Roles are broad rather than narrowly defined.</p>
 
-      <p>Exceptional candidates whose orientation aligns with the firm's are welcome to introduce themselves below at any time, whether or not a position is currently available. A r&eacute;sum&eacute; is sufficient; a letter is welcome but not required. Applications are read personally, and we respond to thoughtful correspondence within a reasonable time.</p>
+      <p>Candidates may submit a r&eacute;sum&eacute; at any time. A cover letter is optional. Submissions are kept on file and reviewed when a position opens.</p>
 
       <p class="pdcm-required-note">* indicates a required field</p>
 
