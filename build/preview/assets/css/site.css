@@ -2924,29 +2924,6 @@ body.page-inner main > section#notfound { padding-top: 190px; }
 @media (max-width: 700px) { body.page-inner main > section#page,
 body.page-inner main > section#notfound { padding-top: 150px; } }
 
-/* The locate control sits with the address fields it fills. */
-.pdcm-locate { margin: -4px 0 20px; }
-.pdcm-locate-btn {
-  font-family: 'Lato', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--navy);
-  background: transparent;
-  border: 1px solid var(--navy);
-  padding: 8px 15px;
-  cursor: pointer;
-  transition: background 0.22s ease, color 0.22s ease;
-}
-.pdcm-locate-btn:hover { background: var(--navy); color: var(--cream); }
-.pdcm-locate-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(234, 208, 156, 0.75); }
-.pdcm-locate-btn[disabled] { opacity: 0.55; cursor: default; }
-.pdcm-locate-btn[disabled]:hover { background: transparent; color: var(--navy); }
-.pdcm-locate .pdcm-note { margin-top: 9px; }
-
-@media (prefers-reduced-motion: reduce) { .pdcm-locate-btn { transition: none; } }
-
 /* A footer page keeps the measure the panel had, so its text is not stranded
    across a wide screen. */
 .page-body { max-width: 820px; margin: 0 auto; }

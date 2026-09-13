@@ -3439,12 +3439,6 @@ footer .foot-top { padding-bottom: 22px; }
           </div>
         </div>
 
-        <div class="pdcm-locate">
-          <button type="button" class="pdcm-locate-btn" id="pdcmLocate">Use my location</button>
-          <p class="pdcm-note" id="pdcmLocateNote">Optional. Fills in the country, state and city
-            for you. Your position is read by your browser, which will ask permission first, and is
-            used only to look up the place name.</p>
-        </div>
 
         <div class="pdcm-field">
           <label for="pa-resume">R&eacute;sum&eacute; / CV <span aria-hidden="true">*</span></label>
@@ -4319,82 +4313,6 @@ footer .foot-top { padding-bottom: 22px; }
   if (countryEl) {
     countryEl.addEventListener("change", function () { buildStateField(countryEl.value); });
     buildStateField(countryEl.value);
-  }
-
-  /* Filling the address from the browser's own position. The coordinates are
-     read only when the button is pressed, and the browser asks its own
-     permission first. They are sent to a public reverse-geocoding service to
-     be turned into a place name and are not stored here or sent to the firm;
-     what the firm receives is whatever ends up in the fields, the same as if
-     they had been typed. Everything about this is optional: a refusal, a
-     failure or a service that cannot place the coordinates simply leaves the
-     fields to be filled by hand. */
-  var locateBtn = document.getElementById("pdcmLocate");
-  var locateNote = document.getElementById("pdcmLocateNote");
-
-  function locateSay(msg) { if (locateNote) locateNote.textContent = msg; }
-
-  if (locateBtn) {
-    if (!navigator.geolocation) {
-      locateBtn.hidden = true;
-    } else {
-      locateBtn.addEventListener("click", function () {
-        locateBtn.disabled = true;
-        locateSay("Asking your browser for your location…");
-
-        /* Neither callback is guaranteed to fire. A browser that shows a
-           permission prompt and has it dismissed rather than answered can
-           leave the request outstanding forever -- the timeout in the
-           options below covers acquiring a position, not waiting for the
-           person to decide. Measured: still waiting after thirteen seconds
-           with the button disabled and a message saying it was still
-           asking. So the recovery is ours to guarantee. */
-        var settled = false;
-        function finish(msg) {
-          if (settled) return;
-          settled = true;
-          locateSay(msg);
-          locateBtn.disabled = false;
-        }
-        window.setTimeout(function () {
-          finish("No location was shared. Please fill the fields in.");
-        }, 12000);
-
-        navigator.geolocation.getCurrentPosition(function (pos) {
-          if (settled) return;
-          var q = "?latitude=" + pos.coords.latitude.toFixed(4)
-                + "&longitude=" + pos.coords.longitude.toFixed(4) + "&localityLanguage=en";
-          fetch("https://api.bigdatacloud.net/data/reverse-geocode-client" + q)
-            .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(r.status)); })
-            .then(function (j) {
-              var country = j.countryName || "";
-              var region = j.principalSubdivision || "";
-              var city = j.city || j.locality || "";
-
-              if (country && countryEl) {
-                for (var i = 0; i < countryEl.options.length; i++) {
-                  if (countryEl.options[i].text === country) { countryEl.selectedIndex = i; break; }
-                }
-                buildStateField(countryEl.value, region);
-              }
-              var cityEl = document.getElementById("pa-city");
-              if (city && cityEl) cityEl.value = city;
-
-              var stateEl = document.getElementById("pa-state");
-              if (region && stateEl && stateEl.tagName === "INPUT") stateEl.value = region;
-
-              finish(country || city
-                ? "Filled in from your location. Please correct anything that is wrong."
-                : "Your location could not be matched to a place. Please fill the fields in.");
-            })
-            .catch(function () {
-              finish("The lookup could not be reached. Please fill the fields in.");
-            });
-        }, function () {
-          finish("No location was shared. Please fill the fields in.");
-        }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
-      });
-    }
   }
 
   function fieldOf(el) { return el.closest(".pdcm-field"); }
