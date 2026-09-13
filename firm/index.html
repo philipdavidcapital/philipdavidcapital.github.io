@@ -15,25 +15,15 @@
     }
   } catch (e) {}
 </script>
-<script id="pdcm-legacy-anchor">
-  /* The sections of the former single page are now pages of their own. A
-     bookmark or an inbound link to the old anchor still reaches its content. */
-  (function () {
-    var moved = { "#firm": "/firm/", "#approach": "/approach/",
-                  "#values": "/values/", "#contact": "/contact/" };
-    var to = moved[window.location.hash];
-    if (to) window.location.replace(to);
-  })();
-</script>
-<title>Philip David Capital Management — A Private Family Office in Tulsa, Oklahoma</title>
-<meta name="description" content="Philip David Capital Management is a private family office headquartered in Tulsa, Oklahoma, managing family capital with quality, structure, and long-term foresight.">
-<link rel="canonical" href="https://philipdavidcapital.com/">
+<title>The Firm — Philip David Capital Management</title>
+<meta name="description" content="A small firm by design, managing family capital from Tulsa, Oklahoma.">
+<link rel="canonical" href="https://philipdavidcapital.com/firm/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css">
 </head>
-<body class="page-dark">
+<body class="page-inner page-light">
 
 <nav id="nav">
   <a href="/" class="nav-logo" aria-label="Philip David Capital Management — Home">
@@ -41,21 +31,32 @@
     <img class="lockup lockup-n" src="/assets/Left%20Aligned%20Full%20Lockup/SVG/PDCM%20Left%20Aligned%20Lockup-Navy.svg" alt="Philip David Capital Management">
   </a>
   <ul class="nav-links">
-    <li><a href="/firm/">The Firm</a></li>
+    <li><a href="/firm/" aria-current="page">The Firm</a></li>
     <li><a href="/approach/">Approach</a></li>
     <li><a href="/values/">Values</a></li>
     <li><a href="/contact/">Contact</a></li>
   </ul>
 </nav>
 
-<header class="hero" id="top">
-  <canvas class="hero-field" id="heroField" aria-hidden="true"></canvas>
-  <div class="hero-content">
-    <div class="hero-eyebrow label">A Private Family Office · Tulsa, Oklahoma</div>
-    <h1 id="heroTypedHeadline" class="hero-typing-target">Quality, structure,<br>and <span class="ital">long-term foresight</span><br>in the management of capital.</h1>
-    <p class="hero-sub hero-typing-target" id="heroTypedSub">Explore this website to learn more about the principles, processes, and people behind Philip David Capital Management.</p>
+<main class="page">
+<section id="firm">
+  <div class="inner">
+    <div class="head-grid reveal">
+      <div>
+        <div class="label head-eyebrow">The Firm</div>
+        <h2>Independent. Disciplined. <br><span class="ital">Long term.</span></h2>
+      </div>
+      <div>
+        <p class="lead">Philip David Capital Management ("PDCM") is a private family office headquartered in Tulsa, Oklahoma. PDCM serves as the general partner and investment manager for its pooled private fund, Philip David Capital Partners LP (and respective series supplements), allocating family capital across liquid investments, operator-led equity situations, and other private opportunities. The firm manages family capital only and does not offer investment advisory services to the public.</p>
+      </div>
+    </div>
+
+    <p class="statement reveal">
+      We apply fundamental analysis, valuation discipline, and risk-aware judgment to the management of partnership capital, with an emphasis on structure, patience, accountability, and long-term decision quality.
+    </p>
   </div>
-</header>
+</section>
+</main>
 
 <footer>
   <div class="foot-top">

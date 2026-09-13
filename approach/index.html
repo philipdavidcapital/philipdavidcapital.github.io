@@ -15,25 +15,15 @@
     }
   } catch (e) {}
 </script>
-<script id="pdcm-legacy-anchor">
-  /* The sections of the former single page are now pages of their own. A
-     bookmark or an inbound link to the old anchor still reaches its content. */
-  (function () {
-    var moved = { "#firm": "/firm/", "#approach": "/approach/",
-                  "#values": "/values/", "#contact": "/contact/" };
-    var to = moved[window.location.hash];
-    if (to) window.location.replace(to);
-  })();
-</script>
-<title>Philip David Capital Management — A Private Family Office in Tulsa, Oklahoma</title>
-<meta name="description" content="Philip David Capital Management is a private family office headquartered in Tulsa, Oklahoma, managing family capital with quality, structure, and long-term foresight.">
-<link rel="canonical" href="https://philipdavidcapital.com/">
+<title>Approach — Philip David Capital Management</title>
+<meta name="description" content="How Philip David Capital Management approaches the management of family capital.">
+<link rel="canonical" href="https://philipdavidcapital.com/approach/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css">
 </head>
-<body class="page-dark">
+<body class="page-inner page-dark">
 
 <nav id="nav">
   <a href="/" class="nav-logo" aria-label="Philip David Capital Management — Home">
@@ -42,20 +32,45 @@
   </a>
   <ul class="nav-links">
     <li><a href="/firm/">The Firm</a></li>
-    <li><a href="/approach/">Approach</a></li>
+    <li><a href="/approach/" aria-current="page">Approach</a></li>
     <li><a href="/values/">Values</a></li>
     <li><a href="/contact/">Contact</a></li>
   </ul>
 </nav>
 
-<header class="hero" id="top">
-  <canvas class="hero-field" id="heroField" aria-hidden="true"></canvas>
-  <div class="hero-content">
-    <div class="hero-eyebrow label">A Private Family Office · Tulsa, Oklahoma</div>
-    <h1 id="heroTypedHeadline" class="hero-typing-target">Quality, structure,<br>and <span class="ital">long-term foresight</span><br>in the management of capital.</h1>
-    <p class="hero-sub hero-typing-target" id="heroTypedSub">Explore this website to learn more about the principles, processes, and people behind Philip David Capital Management.</p>
+<main class="page">
+<section id="approach">
+  <div class="inner">
+    <div class="head-grid reveal">
+      <div>
+        <div class="label head-eyebrow">Approach</div>
+        <h2>The work of investing.</h2>
+      </div>
+      <div>
+        <p class="lead">Our investment work moves from market context to individual opportunity. We evaluate sectors, business models, financial statements, cash flows, valuation sensitivity, competitive position, and the risk profile surrounding each decision.</p>
+      </div>
+    </div>
+
+    <div class="approach-list">
+      <div class="approach-item reveal">
+        <span class="approach-num">FIRST</span>
+        <h3>Original Research</h3>
+        <p>Every position begins with original work on the business, the industry, and the price. We do not borrow theses we cannot defend in detail. The work is deliberate because durable capital management requires patience, process, and restraint.</p>
+      </div>
+      <div class="approach-item reveal">
+        <span class="approach-num">SECOND</span>
+        <h3>Concentration with Conviction</h3>
+        <p>Position size is a function of conviction and downside, not of portfolio construction theory. We are willing to be concentrated when the work supports it and willing to hold cash when it does not.</p>
+      </div>
+      <div class="approach-item reveal">
+        <span class="approach-num">THIRD</span>
+        <h3>Time as an Advantage</h3>
+        <p>The firm holds positions for years. The structural willingness to wait is itself a source of return. Patience compounds where activity erodes. Time horizon is the principal advantage we offer.</p>
+      </div>
+    </div>
   </div>
-</header>
+</section>
+</main>
 
 <footer>
   <div class="foot-top">

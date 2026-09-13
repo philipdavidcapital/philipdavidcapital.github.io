@@ -15,25 +15,15 @@
     }
   } catch (e) {}
 </script>
-<script id="pdcm-legacy-anchor">
-  /* The sections of the former single page are now pages of their own. A
-     bookmark or an inbound link to the old anchor still reaches its content. */
-  (function () {
-    var moved = { "#firm": "/firm/", "#approach": "/approach/",
-                  "#values": "/values/", "#contact": "/contact/" };
-    var to = moved[window.location.hash];
-    if (to) window.location.replace(to);
-  })();
-</script>
-<title>Philip David Capital Management — A Private Family Office in Tulsa, Oklahoma</title>
-<meta name="description" content="Philip David Capital Management is a private family office headquartered in Tulsa, Oklahoma, managing family capital with quality, structure, and long-term foresight.">
-<link rel="canonical" href="https://philipdavidcapital.com/">
+<title>Values — Philip David Capital Management</title>
+<meta name="description" content="Responsibility, discipline, patience, independence and accountability.">
+<link rel="canonical" href="https://philipdavidcapital.com/values/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css">
 </head>
-<body class="page-dark">
+<body class="page-inner page-light">
 
 <nav id="nav">
   <a href="/" class="nav-logo" aria-label="Philip David Capital Management — Home">
@@ -43,19 +33,79 @@
   <ul class="nav-links">
     <li><a href="/firm/">The Firm</a></li>
     <li><a href="/approach/">Approach</a></li>
-    <li><a href="/values/">Values</a></li>
+    <li><a href="/values/" aria-current="page">Values</a></li>
     <li><a href="/contact/">Contact</a></li>
   </ul>
 </nav>
 
-<header class="hero" id="top">
-  <canvas class="hero-field" id="heroField" aria-hidden="true"></canvas>
-  <div class="hero-content">
-    <div class="hero-eyebrow label">A Private Family Office · Tulsa, Oklahoma</div>
-    <h1 id="heroTypedHeadline" class="hero-typing-target">Quality, structure,<br>and <span class="ital">long-term foresight</span><br>in the management of capital.</h1>
-    <p class="hero-sub hero-typing-target" id="heroTypedSub">Explore this website to learn more about the principles, processes, and people behind Philip David Capital Management.</p>
+<main class="page">
+<section id="values">
+  <div class="inner">
+    <div class="head-grid reveal">
+      <div>
+        <div class="label head-eyebrow">Values</div>
+        <h2>The principles that govern <span class="ital">how we work.</span></h2>
+      </div>
+      <div>
+        <p class="lead">A firm is shaped as much by what it refuses as by what it pursues. Philip David Capital Management is built around restraint, patience, and repeatable judgment rather than activity for its own sake. The following values describe the firm’s disposition toward capital, the standards that guide decision-making, and the expectations by which we seek to hold ourselves accountable over time.</p>
+      </div>
+    </div>
+
+    <div class="values-list accordion-values">
+      <div class="value-accordion-item reveal is-open"><span class="value-hover-bar" aria-hidden="true"></span>
+        <button class="value-accordion-trigger" type="button" aria-expanded="true">
+          <span class="value-num">01</span>
+          <span class="value-title">Responsibility</span>
+          <span class="value-toggle" aria-hidden="true"></span>
+        </button>
+        <div class="value-accordion-panel">
+          <p>Responsibility is the foundation of the firm’s approach to capital. Philip David Capital Management treats investment authority as an obligation that must be exercised with care, restraint, and clear judgment. The firm’s work is not centered on activity for its own sake, but on preserving decision quality across changing market conditions. This means weighing risk before return, understanding the economic substance behind each investment, and maintaining a long-term orientation even when short-term conditions are noisy or uncomfortable.</p>
+        </div>
+      </div>
+      <div class="value-accordion-item reveal"><span class="value-hover-bar" aria-hidden="true"></span>
+        <button class="value-accordion-trigger" type="button" aria-expanded="false">
+          <span class="value-num">02</span>
+          <span class="value-title">Discipline</span>
+          <span class="value-toggle" aria-hidden="true"></span>
+        </button>
+        <div class="value-accordion-panel">
+          <p>Discipline means decisions are guided by process rather than impulse. The firm emphasizes defined screening criteria, financial statement analysis, valuation work, free cash flow review, balance sheet quality, and risk-adjusted return before committing capital. A disciplined process also requires the willingness to do nothing when opportunity is unclear, pricing is unattractive, or the available facts do not support conviction. For Philip David Capital Management, discipline is both an investment principle and an operating principle that shapes portfolio review, reporting, and accountability.</p>
+        </div>
+      </div>
+      <div class="value-accordion-item reveal"><span class="value-hover-bar" aria-hidden="true"></span>
+        <button class="value-accordion-trigger" type="button" aria-expanded="false">
+          <span class="value-num">03</span>
+          <span class="value-title">Patience</span>
+          <span class="value-toggle" aria-hidden="true"></span>
+        </button>
+        <div class="value-accordion-panel">
+          <p>Patience is central to the firm’s view of durable capital formation. Markets often reward activity in the short term, but lasting results are more commonly produced by careful selection, appropriate sizing, and the time required for business value to develop. The firm seeks to remain anchored beyond short-term noise, allowing thoughtful analysis, business fundamentals, and valuation discipline to carry more weight than temporary sentiment. Patience does not mean ignoring risk; it means monitoring risk carefully without allowing volatility alone to dictate judgment.</p>
+        </div>
+      </div>
+      <div class="value-accordion-item reveal"><span class="value-hover-bar" aria-hidden="true"></span>
+        <button class="value-accordion-trigger" type="button" aria-expanded="false">
+          <span class="value-num">04</span>
+          <span class="value-title">Independence</span>
+          <span class="value-toggle" aria-hidden="true"></span>
+        </button>
+        <div class="value-accordion-panel">
+          <p>Independence allows the firm to make judgments without relying on consensus, trend-following, or the appearance of constant action. The ability to think independently is especially important when markets are crowded, sentiment is extreme, or conventional views are not supported by underlying economics. Philip David Capital Management seeks to evaluate investments on their own merits, using internal analysis and a clear understanding of cash-flow durability, leverage, competitive position, and valuation sensitivity.</p>
+        </div>
+      </div>
+      <div class="value-accordion-item reveal"><span class="value-hover-bar" aria-hidden="true"></span>
+        <button class="value-accordion-trigger" type="button" aria-expanded="false">
+          <span class="value-num">05</span>
+          <span class="value-title">Accountability</span>
+          <span class="value-toggle" aria-hidden="true"></span>
+        </button>
+        <div class="value-accordion-panel">
+          <p>Accountability keeps responsibility visible. The firm’s structure is designed so investment judgment, operational oversight, and the consequences of decision-making remain closely aligned. Philip David Capital Management believes capital management should be understandable, documented, and subject to consistent review. That mindset extends from portfolio analysis to financial reporting, from risk controls to communication, and from liquid investments to operator-led opportunities. Accountability requires that decisions be made deliberately, monitored carefully, and explained with clarity.</p>
+        </div>
+      </div>
+    </div>
   </div>
-</header>
+</section>
+</main>
 
 <footer>
   <div class="foot-top">
