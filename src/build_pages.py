@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Build the multi-page site from src/site.html.
+"""Build the site from src/site.html.
 
-src/site.html stays the single source of truth for every style, script and
-piece of markup. This script splits it into one page per nav destination and
-lifts the shared CSS and JS into files the browser can cache across a
-navigation -- which is what lets the view transition between pages look
-instant rather than like a reload.
+The main site is one page: the hero and its four sections, reached by the nav
+anchors, exactly as before. What changes is the footer. Careers, Privacy,
+Terms of Use and Disclaimer were panels that opened over whatever you were
+reading; each is now a page with an address of its own, so it can be linked,
+bookmarked, cited in correspondence and read on its own terms. LinkedIn is
+someone else's site and stays an outbound link.
 
-Nothing here rewrites copy. Sections move wholesale.
+src/site.html stays the single source of truth. Nothing here rewrites copy --
+sections and notices move wholesale, and the build fails loudly if a piece it
+expects is missing.
 """
 import pathlib, re, sys
 
@@ -25,7 +28,6 @@ def one(pattern, label, flags=re.S):
     return m[0]
 
 
-# ── Head ────────────────────────────────────────────────────────────
 head = one(r"<head>(.*?)</head>", "head")
 restoration = one(r'(<script id="pdcm-scroll-restoration">.*?</script>)', "restoration")
 fonts = "\n".join(re.findall(r'<link rel="preconnect"[^>]*>|<link href="https://fonts\.googleapis[^>]*>', head))
@@ -36,72 +38,91 @@ styles = re.findall(r"<style[^>]*>(.*?)</style>", head, re.S)
 if len(styles) != 5:
     sys.exit(f"FAIL: expected 5 style blocks, found {len(styles)}")
 
-
-# ── Body pieces ─────────────────────────────────────────────────────
 body = one(r"<body[^>]*>(.*?)</body>", "body")
-
 nav = one(r"(<nav id=\"nav\">.*?</nav>)", "nav")
 hero = one(r"(<header class=\"hero\" id=\"top\">.*?</header>)", "hero")
 footer = one(r"(<footer>.*?</footer>)", "footer")
 entry_gate = one(r'(<div class="disclaimer-modal" id="entryDisclaimerModal".*?</div>\s*</div>\s*</div>)', "entry gate")
 
-sections = {}
-for sid in ("firm", "approach", "values", "contact"):
-    sections[sid] = one(r'(<section id="%s".*?</section>)' % sid, "section " + sid)
+sections = [one(r'(<section id="%s".*?</section>)' % s, "section " + s)
+            for s in ("firm", "approach", "values", "contact")]
 
-# The three legal modals travel with every page. The careers modal does not:
-# its contents become a page of their own.
-legal = re.findall(r'(<div class="disclaimer-modal" id="(?:disclaimer|privacy|terms)Modal".*?</div>\s*</div>\s*</div>)', SRC, re.S)
-if len(legal) != 3:
-    sys.exit(f"FAIL: expected 3 legal modals, found {len(legal)}")
+# Each former panel keeps its contents exactly; only its container changes.
+def panel(modal_id):
+    return one(r'<div class="disclaimer-modal" id="%s".*?<div class="disclaimer-content">(.*?)\s*</div>\s*</div>\s*</div>'
+               % modal_id, "panel " + modal_id)
 
-careers_inner = one(r'<div class="disclaimer-modal" id="careersModal".*?<div class="disclaimer-content">(.*?)\s*</div>\s*</div>\s*</div>', "careers content")
+PANELS = {"careers": panel("careersModal"), "privacy": panel("privacyModal"),
+          "terms": panel("termsModal"), "disclaimer": panel("disclaimerModal")}
 
-# ── Scripts, in document order ──────────────────────────────────────
 scripts = re.findall(r"<script(?![^>]*\bsrc=)(?![^>]*pdcm-scroll-restoration)[^>]*>(.*?)</script>", body, re.S)
 if len(scripts) < 7:
     sys.exit(f"FAIL: expected the page's scripts, found {len(scripts)}")
 
 
-# ── Shared CSS ──────────────────────────────────────────────────────
-# Every rule that styles the nav in its scrolled state is mirrored onto the
-# inner pages, which have no hero to sit over and so need that treatment from
-# the first frame. Mirroring rather than restating means the two can't drift.
 css = "\n".join(styles)
 
+# The nav on a footer page, which has no hero to sit over and so needs the
+# treatment it would otherwise only get once you had scrolled. Mirrored from
+# the nav.scrolled rules rather than restated, so the two cannot drift.
 mirrored = []
 for rule in re.findall(r"([^{}]*nav\.scrolled[^{}]*)\{([^{}]*)\}", css):
-    sel = ", ".join(
-        s.strip().replace("nav.scrolled", "body.page-light nav")
-        for s in rule[0].split(",") if "nav.scrolled" in s
-    )
+    sel = ", ".join(s.strip().replace("nav.scrolled", "body.page-light nav")
+                    for s in rule[0].split(",") if "nav.scrolled" in s)
     if sel:
         mirrored.append(f"{sel} {{{rule[1]}}}")
 if len(mirrored) < 4:
     sys.exit(f"FAIL: expected to mirror the nav.scrolled rules, mirrored {len(mirrored)}")
 
+CLEARANCE = ",\n".join("body.page-inner main > section#" + i for i in ("page", "notfound"))
+
 EXTRA_CSS = """
 
 /* ════════════════════════════════════════════════
-   MULTI-PAGE — generated by src/build_pages.py
+   Generated by src/build_pages.py
    ════════════════════════════════════════════════ */
 
-/* Cross-document view transitions. Chrome and Safari animate between pages;
-   Firefox ignores the at-rule and navigates normally, which is the correct
-   fallback rather than a broken one. Naming the nav and footer keeps them
-   still while the page beneath them changes, so a navigation reads as the
-   content turning over rather than the whole site reloading. */
+/* ── The hero's lower edge ────────────────────────
+   The hero used to stop dead against the section below it -- a hard line
+   across the page where a dark field met a pale one. This dissolves it: a
+   band of the following section's colour, rising out of the bottom of the
+   hero. It is driven by scroll position rather than by a one-way animation,
+   so it resolves as you come down and returns as you go back up, and it is
+   the same gesture in both directions.
+
+   The band belongs to the hero rather than to the section below so that it
+   sits over the moving light field and blends with whatever the field is
+   doing at that moment, instead of cutting across it. */
+.hero { --hero-dissolve: 0; }
+
+/* The dissolve itself lives in the hero-field stylesheet in src/site.html,
+   which owns this layer with !important; a rule here could not beat it. */
+
+/* The section below deliberately adds nothing of its own. An earlier version
+   gave #firm a navy head meant to meet the hero halfway, but the hero has
+   already resolved to the paper colour by the time it ends -- so tinting the
+   top of the section darker than the rest of it did not soften the join, it
+   introduced a second edge a few pixels below the first. Measured as a band
+   still visible at the seam. The hero's dissolve reaching full paper is the
+   whole effect. */
+
+/* Nothing moves under reduced motion, so the join is simply always made. */
+@media (prefers-reduced-motion: reduce) {
+  .hero { --hero-dissolve: 1; }
+}
+
+/* ── Footer pages ─────────────────────────────────
+   Cross-document view transitions. Chrome and Safari animate between the
+   main page and a footer page; Firefox ignores the at-rule and navigates
+   normally, which is the correct fallback rather than a broken one. Naming
+   the nav and footer keeps them still while the content changes. */
 @view-transition { navigation: auto; }
 
 nav { view-transition-name: pdcm-nav; }
 footer { view-transition-name: pdcm-footer; }
 
-::view-transition-old(root) {
-  animation: pdcmPageOut 0.30s cubic-bezier(.4, 0, 1, 1) both;
-}
-::view-transition-new(root) {
-  animation: pdcmPageIn 0.46s cubic-bezier(.16, 1, .3, 1) both;
-}
+::view-transition-old(root) { animation: pdcmPageOut 0.30s cubic-bezier(.4, 0, 1, 1) both; }
+::view-transition-new(root) { animation: pdcmPageIn 0.46s cubic-bezier(.16, 1, .3, 1) both; }
 @keyframes pdcmPageOut { to   { opacity: 0; transform: translateY(-10px); } }
 @keyframes pdcmPageIn  { from { opacity: 0; transform: translateY(14px);  } }
 
@@ -110,42 +131,18 @@ footer { view-transition-name: pdcm-footer; }
   ::view-transition-new(root) { animation: none; }
 }
 
-/* The nav on an inner page. */
-%(mirrored)s
+__MIRRORED__
 
-/* An inner page has no hero, so its first section would otherwise start
-   underneath the fixed nav. Each section carries its own padding under an ID
-   selector, which outranks anything written without one -- so these are
-   qualified by ID too, or the rule silently loses and the heading sits behind
-   the nav. */
-%(clearance)s { padding-top: 190px; }
-@media (max-width: 700px) { %(clearance)s { padding-top: 150px; } }
+/* A footer page has no hero, so its content would otherwise start underneath
+   the fixed nav. Qualified by ID because the sections it replaces carry their
+   padding under ID selectors, which outrank anything written without one. */
+__CLEARANCE__ { padding-top: 190px; }
+@media (max-width: 700px) { __CLEARANCE__ { padding-top: 150px; } }
 
-/* Approach keeps its navy ground as a page, so the nav stays in its light
-   form there and the page's own background matches to the overscroll edge. */
-body.page-dark { background: var(--navy); }
-body.page-dark nav.scrolled {
-  background: rgba(25, 44, 68, 0.92);
-  border-bottom: 1px solid rgba(234, 208, 156, 0.14);
-}
-body.page-dark nav.scrolled .nav-logo .lockup-w { display: block; }
-body.page-dark nav.scrolled .nav-logo .lockup-n { display: none; }
-body.page-dark nav.scrolled .nav-links a { color: var(--cream); }
-body.page-dark nav.scrolled .nav-links a:hover { color: var(--gold); }
-body.page-dark nav.scrolled .nav-li-link {
-  border-color: rgba(246, 243, 236, 0.4);
-  color: var(--cream) !important;
-}
-
-/* The current page, marked in the nav. */
-.nav-links a[aria-current="page"] { color: var(--gold); }
-.nav-links a[aria-current="page"]::after { width: 100%%; }
-body.page-light .nav-links a[aria-current="page"] { color: var(--capital-blue); }
-
-/* The Careers application, now a page rather than a panel. It keeps the
-   modal's measure so the form is not stranded across a wide screen. */
-.careers-page { max-width: 820px; margin: 0 auto; }
-.careers-page h2 {
+/* A footer page keeps the measure the panel had, so its text is not stranded
+   across a wide screen. */
+.page-body { max-width: 820px; margin: 0 auto; }
+.page-body h2 {
   font-family: 'Cormorant SC', serif;
   font-weight: 500;
   font-size: clamp(36px, 4.4vw, 56px);
@@ -156,36 +153,40 @@ body.page-light .nav-links a[aria-current="page"] { color: var(--capital-blue); 
   padding-bottom: 28px;
   margin-bottom: 34px;
 }
-.careers-page > p {
-  font-size: 14.5px;
-  line-height: 1.9;
-  color: var(--charcoal);
-  margin-bottom: 18px;
-}
-.careers-page .pdcm-apply-done h3 {
+.page-body h3 {
   font-family: 'Cormorant SC', serif;
   font-weight: 500;
-  font-size: 26px;
+  font-size: 17px;
   letter-spacing: 0.05em;
   color: var(--navy);
-  margin-bottom: 16px;
+  margin: 30px 0 12px;
 }
-/* No close button floats over this form, so the gutter that cleared one
-   inside the modal is not wanted here. */
-@media (max-width: 700px) {
-  .careers-page .pdcm-apply,
-  .careers-page .pdcm-required-note { padding-right: 0; }
+.page-body p, .page-body li {
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--charcoal);
+  margin-bottom: 15px;
 }
-""" % {
-    "mirrored": "\n".join(mirrored),
-    "clearance": ",\n".join("body.page-inner main > section#" + i
-                            for i in ("firm", "approach", "values", "contact", "careers", "notfound")),
-}
+.page-body ul, .page-body ol { padding-left: 20px; margin-bottom: 15px; }
+.page-body .pdcm-apply-done h3 { font-size: 26px; margin-top: 8px; }
 
-# A url() in a stylesheet resolves against the stylesheet, not the page. Left
-# relative, these would be fetched from /assets/css/ and 404 on every page that
-# uses them, so they are made absolute along with everything else.
+/* No close button floats over a page, so the gutter that cleared one inside
+   the panel is not wanted here. */
+@media (max-width: 700px) {
+  .page-body .pdcm-apply,
+  .page-body .pdcm-required-note { padding-right: 0; }
+}
+"""
+EXTRA_CSS = (EXTRA_CSS
+             .replace("__MIRRORED__", "\n".join(mirrored))
+             .replace("__CLEARANCE__", CLEARANCE))
+for token in ("__MIRRORED__", "__CLEARANCE__"):
+    if token in EXTRA_CSS:
+        sys.exit("FAIL: unfilled " + token)
+
 sheet = css + EXTRA_CSS
+# A url() in a stylesheet resolves against the stylesheet, not the page. Left
+# relative these are fetched from /assets/css/ and 404 on every page.
 for name in ("tulsa%20skyline.jpg", "tulsa-skyline-hires.webp"):
     if 'url("%s")' % name not in sheet:
         sys.exit("FAIL: expected url(%s) in the stylesheet" % name)
@@ -195,19 +196,82 @@ CSS_OUT.parent.mkdir(parents=True, exist_ok=True)
 CSS_OUT.write_text(sheet, encoding="utf-8")
 
 
-# ── Shared JS ───────────────────────────────────────────────────────
 js = "\n".join(scripts)
 
-# The entry notice was written for a single page, where every load is a fresh
-# arrival. Across six pages it would reappear on every navigation, so it now
-# shows once per browser session. A new visit, a new tab, or a reopened
-# browser still gets it; moving between pages does not.
+# ── The hero's dissolve, driven by scroll ───────────────────────────
+DISSOLVE_JS = """
+/* The hero's lower edge dissolves into the section below it rather than
+   ending on a hard line. The amount is read from scroll position on every
+   frame rather than played as a one-way animation, so scrolling back up
+   unwinds it exactly as scrolling down made it -- the same gesture in
+   reverse, not a second animation that happens to run backwards.
+
+   It is written to a custom property and the blending is left to CSS, which
+   keeps the work on the compositor instead of in this handler. */
+(function () {
+  "use strict";
+
+  var hero = document.querySelector(".hero");
+  if (!hero) return;
+
+  var reduce = false;
+  try {
+    reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (e) {}
+  if (reduce) return;   /* the stylesheet already holds it resolved */
+
+  var ticking = false;
+  var last = -1;
+
+  function frame() {
+    ticking = false;
+    var h = hero.offsetHeight || window.innerHeight;
+    /* Fully resolved by the time the hero is two thirds gone, so the join is
+       already made when the section below reaches the eye. */
+    var t = (window.scrollY || window.pageYOffset || 0) / (h * 0.66);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    /* Ease so the edge softens early and settles, rather than tracking the
+       wheel one to one. */
+    var v = t * t * (3 - 2 * t);
+    if (Math.abs(v - last) < 0.004) return;
+    last = v;
+    hero.style.setProperty("--hero-dissolve", v.toFixed(3));
+  }
+
+  function onScroll() {
+    if (!ticking) { ticking = true; window.requestAnimationFrame(frame); }
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  frame();
+})();
+"""
+js = js + "\n" + DISSOLVE_JS
+
+# ── The entry notice ────────────────────────────────────────────────
+# The main page keeps the behaviour it had: the notice opens over the landing
+# view on every load, including a refresh part-way down. That was asked for
+# explicitly and is not changed here.
+#
+# What would have changed it is the footer pages. Reading the Privacy page and
+# coming back would have meant acknowledging the notice twice more, which is
+# not a stricter gate, only a more irritating one. So a footer page shows it
+# only to someone who has not already acknowledged it this session -- a cold
+# arrival straight to /privacy/ still gets it.
 GATE_OLD = """    clearEntryState();
     pinToTop();
     window.setTimeout(openEntryDisclaimer, 80);"""
 GATE_NEW = """    var SEEN = "pdcm-entry-notice-acknowledged";
+
+    /* A footer page is a page of this site reached from within it; the main
+       page is where an arrival happens. Only the former defers to the
+       session. */
+    var isFooterPage = document.body.classList.contains("page-inner");
     var seen = false;
-    try { seen = window.sessionStorage.getItem(SEEN) === "1"; } catch (e) {}
+    if (isFooterPage) {
+      try { seen = window.sessionStorage.getItem(SEEN) === "1"; } catch (e) {}
+    }
 
     if (!seen) {
       clearEntryState();
@@ -227,8 +291,6 @@ if js.count(ACK_OLD) != 1:
     sys.exit("FAIL: entry notice acknowledgement not found")
 js = js.replace(ACK_OLD, ACK_NEW)
 
-# The application now lives at /careers/, so the relay returns the candidate
-# there rather than to whichever page the form happened to be opened from.
 RET_OLD = 'var RETURN_TO = location.origin + location.pathname + "?application=received";'
 RET_NEW = 'var RETURN_TO = location.origin + "/careers/?application=received";'
 if js.count(RET_OLD) != 1:
@@ -242,46 +304,45 @@ JS_OUT.write_text(
 
 
 # ── Links ───────────────────────────────────────────────────────────
-# The nav destinations become real URLs. Directory paths rather than .html so
-# the address bar reads philipdavidcapital.com/approach, the way the rest of
-# the industry writes them.
-DEST = {"firm": "/firm/", "approach": "/approach/", "values": "/values/", "contact": "/contact/"}
+# The nav keeps its anchors: the main page is one page again. Only the footer
+# changes, from panels that opened in place to pages with addresses.
+PANEL_HREF = {
+    'careers': '<a href="#" data-modal-trigger="careersModal">Careers</a>',
+    'privacy': '<a href="#" data-modal-trigger="privacyModal">Privacy</a>',
+    'terms': '<a href="#" data-modal-trigger="termsModal">Terms of Use</a>',
+    'disclaimer': '<a href="#" data-modal-trigger="disclaimerModal">Disclaimer</a>',
+}
+PAGE_HREF = {
+    'careers': '<a href="/careers/">Careers</a>',
+    'privacy': '<a href="/privacy/">Privacy</a>',
+    'terms': '<a href="/terms/">Terms of Use</a>',
+    'disclaimer': '<a href="/disclaimer/">Disclaimer</a>',
+}
 
-def link_up(markup, current=None):
-    out = markup.replace('href="#top" class="nav-logo"', 'href="/" class="nav-logo"')
-    for sid, href in DEST.items():
-        out = out.replace('href="#%s"' % sid, 'href="%s"' % href)
-    out = out.replace('<a href="#" data-modal-trigger="careersModal">Careers</a>',
-                      '<a href="/careers/">Careers</a>')
-    if current:
-        out = out.replace('href="%s"' % DEST[current],
-                          'href="%s" aria-current="page"' % DEST[current], 1) if current in DEST else out
+def footer_for(on_page=None):
+    out = footer
+    for key, old in PANEL_HREF.items():
+        if out.count(old) != 1:
+            sys.exit("FAIL: footer link for %s not found" % key)
+        new = PAGE_HREF[key]
+        if key == on_page:
+            new = new.replace('">', '" aria-current="page">')
+        out = out.replace(old, new)
     return out
 
-# Assets are referenced from nested pages too, so their paths must be
-# absolute rather than relative to the page that happens to use them.
 def absolutise(markup):
-    return (markup
-            .replace('src="assets/', 'src="/assets/')
-            .replace('href="assets/', 'href="/assets/')
-            .replace('url("tulsa', 'url("/tulsa')
-            .replace('src="tulsa', 'src="/tulsa'))
+    return (markup.replace('src="assets/', 'src="/assets/')
+                  .replace('href="assets/', 'href="/assets/')
+                  .replace('src="tulsa', 'src="/tulsa'))
 
-
-# Anyone holding a link to the old single page -- philipdavidcapital.com/#approach
-# -- would otherwise land on a home page with a dead anchor. This sends them to
-# the page that section became. It runs before anything renders, so the wrong
-# page is never painted.
-HASH_REDIRECT = """<script id="pdcm-legacy-anchor">
-  /* The sections of the former single page are now pages of their own. A
-     bookmark or an inbound link to the old anchor still reaches its content. */
-  (function () {
-    var moved = { "#firm": "/firm/", "#approach": "/approach/",
-                  "#values": "/values/", "#contact": "/contact/" };
-    var to = moved[window.location.hash];
-    if (to) window.location.replace(to);
-  })();
-</script>"""
+# On a footer page the nav anchors have to point back at the main page.
+def nav_for(inner):
+    out = nav
+    if inner:
+        out = out.replace('href="#top"', 'href="/"')
+        for sid in ("firm", "approach", "values", "contact"):
+            out = out.replace('href="#%s"' % sid, 'href="/#%s"' % sid)
+    return out
 
 
 PAGE = """<!DOCTYPE html>
@@ -304,8 +365,6 @@ PAGE = """<!DOCTYPE html>
 
 {footer}
 
-{modals}
-
 {gate}
 
 <script src="/assets/js/vendor/lenis.min.js"></script>
@@ -314,101 +373,82 @@ PAGE = """<!DOCTYPE html>
 </html>
 """
 
-FIRM_DESC = ("Philip David Capital Management is a private family office headquartered in "
-             "Tulsa, Oklahoma, managing family capital with quality, structure, and "
-             "long-term foresight.")
-
-PAGES = [
-    dict(path="/", out="index.html", key=None, dark=True,
-         title="Philip David Capital Management — A Private Family Office in Tulsa, Oklahoma",
-         description=FIRM_DESC, content=hero, hero=True),
-    dict(path="/firm/", out="firm/index.html", key="firm", dark=False,
-         title="The Firm — Philip David Capital Management",
-         description="A small firm by design, managing family capital from Tulsa, Oklahoma."),
-    dict(path="/approach/", out="approach/index.html", key="approach", dark=True,
-         title="Approach — Philip David Capital Management",
-         description="How Philip David Capital Management approaches the management of family capital."),
-    dict(path="/values/", out="values/index.html", key="values", dark=False,
-         title="Values — Philip David Capital Management",
-         description="Responsibility, discipline, patience, independence and accountability."),
-    dict(path="/contact/", out="contact/index.html", key="contact", dark=False,
-         title="Contact — Philip David Capital Management",
-         description="Contact Philip David Capital Management in Tulsa, Oklahoma."),
-    dict(path="/careers/", out="careers/index.html", key=None, dark=False,
+FOOTER_PAGES = [
+    dict(key="careers", out="careers/index.html", path="/careers/",
          title="Careers — Philip David Capital Management",
          description="The firm hires infrequently and deliberately. Candidates are welcome to "
                      "introduce themselves at any time."),
+    dict(key="privacy", out="privacy/index.html", path="/privacy/",
+         title="Privacy — Philip David Capital Management",
+         description="How Philip David Capital Management handles information."),
+    dict(key="terms", out="terms/index.html", path="/terms/",
+         title="Terms of Use — Philip David Capital Management",
+         description="Terms governing use of the Philip David Capital Management website."),
+    dict(key="disclaimer", out="disclaimer/index.html", path="/disclaimer/",
+         title="Disclaimer — Philip David Capital Management",
+         description="Important disclosures regarding Philip David Capital Management."),
 ]
 
-modals_markup = absolutise("\n\n".join(legal))
-gate_markup = absolutise(entry_gate)
-footer_markup = absolutise(link_up(footer))
-
 written = []
-for page in PAGES:
-    key = page["key"]
-    if "content" in page:
-        content = page["content"]
-    elif key:
-        content = '<main class="page">\n%s\n</main>' % sections[key]
-    else:
-        content = ('<main class="page">\n<section id="careers">\n  <div class="inner">\n'
-                   '    <div class="careers-page">\n%s\n    </div>\n  </div>\n</section>\n</main>'
-                   % careers_inner)
 
-    classes = []
-    if not page.get("hero"):
-        classes.append("page-inner")
-    classes.append("page-dark" if page["dark"] else "page-light")
+# ── The main page ───────────────────────────────────────────────────
+main_html = PAGE.format(
+    restoration=restoration,
+    title="Philip David Capital Management — A Private Family Office in Tulsa, Oklahoma",
+    description="Philip David Capital Management is a private family office headquartered in "
+                "Tulsa, Oklahoma, managing family capital with quality, structure, and "
+                "long-term foresight.",
+    path="/",
+    fonts=fonts,
+    bodyclass="",
+    nav=absolutise(nav_for(False)),
+    content=absolutise(hero + "\n\n" + "\n\n".join(sections)),
+    footer=absolutise(footer_for()),
+    gate=absolutise(entry_gate),
+)
+(ROOT / "index.html").write_text(main_html, encoding="utf-8")
+written.append(("index.html", len(main_html)))
 
+# ── The footer pages ────────────────────────────────────────────────
+for page in FOOTER_PAGES:
+    content = ('<main class="page">\n<section id="page">\n  <div class="inner">\n'
+               '    <div class="page-body">\n%s\n    </div>\n  </div>\n</section>\n</main>'
+               % PANELS[page["key"]])
     html = PAGE.format(
-        restoration=restoration + ("\n" + HASH_REDIRECT if page["path"] == "/" else ""),
-        title=page["title"],
-        description=page["description"],
-        path=page["path"],
-        fonts=fonts,
-        bodyclass=' class="%s"' % " ".join(classes),
-        nav=absolutise(link_up(nav, key)),
+        restoration=restoration, title=page["title"], description=page["description"],
+        path=page["path"], fonts=fonts,
+        bodyclass=' class="page-inner page-light"',
+        nav=absolutise(nav_for(True)),
         content=absolutise(content),
-        footer=footer_markup,
-        modals=modals_markup,
-        gate=gate_markup,
+        footer=absolutise(footer_for(page["key"])),
+        gate=absolutise(entry_gate),
     )
-
     dest = ROOT / page["out"]
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(html, encoding="utf-8")
     written.append((page["out"], len(html)))
 
-# GitHub Pages serves 404.html for any path it does not recognise. Without one
-# a visitor who mistypes a URL gets GitHub's own page, carrying none of the
-# firm's identity.
+# ── 404 ─────────────────────────────────────────────────────────────
 NOT_FOUND = """<main class="page">
 <section id="notfound">
   <div class="inner">
-    <div class="careers-page">
+    <div class="page-body">
       <h2>Page not found</h2>
       <p>The page you asked for is not here. It may have moved, or the address may be mistyped.</p>
-      <p><a href="/">Return to the home page</a>, or use the navigation above.</p>
+      <p><a href="/">Return to the home page</a>.</p>
     </div>
   </div>
 </section>
 </main>"""
-
-(ROOT / "404.html").write_text(PAGE.format(
-    restoration=restoration,
-    title="Page not found — Philip David Capital Management",
-    description="The requested page could not be found.",
-    path="/404.html",
-    fonts=fonts,
+nf = PAGE.format(
+    restoration=restoration, title="Page not found — Philip David Capital Management",
+    description="The requested page could not be found.", path="/404.html", fonts=fonts,
     bodyclass=' class="page-inner page-light"',
-    nav=absolutise(link_up(nav)),
-    content=NOT_FOUND,
-    footer=footer_markup,
-    modals=modals_markup,
-    gate=gate_markup,
-), encoding="utf-8")
-written.append(("404.html", (ROOT / "404.html").stat().st_size))
+    nav=absolutise(nav_for(True)), content=NOT_FOUND,
+    footer=absolutise(footer_for()), gate=absolutise(entry_gate),
+)
+(ROOT / "404.html").write_text(nf, encoding="utf-8")
+written.append(("404.html", len(nf)))
 
 for name, size in written:
     print(f"  {name:24} {size:>9,} bytes")

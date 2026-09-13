@@ -11,12 +11,12 @@ import pathlib, re, shutil, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "build/preview"
 
-PAGES = {"index.html": "index.html", "firm/index.html": "firm.html",
-         "approach/index.html": "approach.html", "values/index.html": "values.html",
-         "contact/index.html": "contact.html", "careers/index.html": "careers.html"}
+PAGES = {"index.html": "index.html", "careers/index.html": "careers.html",
+         "privacy/index.html": "privacy.html", "terms/index.html": "terms.html",
+         "disclaimer/index.html": "disclaimer.html"}
 
-FLAT = {"/": "index.html", "/firm/": "firm.html", "/approach/": "approach.html",
-        "/values/": "values.html", "/contact/": "contact.html", "/careers/": "careers.html"}
+FLAT = {"/": "index.html", "/careers/": "careers.html", "/privacy/": "privacy.html",
+        "/terms/": "terms.html", "/disclaimer/": "disclaimer.html"}
 
 if OUT.exists():
     shutil.rmtree(OUT)
@@ -31,6 +31,9 @@ for src, dest in PAGES.items():
     # has to point at the flattened ones or it forwards into nothing.
     for url, flat in FLAT.items():
         html = html.replace('": "%s"' % url, '": "%s"' % flat)
+
+    for sid in ("firm", "approach", "values", "contact"):
+        html = html.replace('href="/#%s"' % sid, 'href="index.html#%s"' % sid)
 
     html = html.replace('href="/assets/', 'href="assets/').replace('src="/assets/', 'src="assets/')
     html = html.replace('src="/tulsa', 'src="tulsa').replace('url("/tulsa', 'url("tulsa')

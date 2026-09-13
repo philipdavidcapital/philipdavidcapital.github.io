@@ -539,8 +539,15 @@
     }
 
     var SEEN = "pdcm-entry-notice-acknowledged";
+
+    /* A footer page is a page of this site reached from within it; the main
+       page is where an arrival happens. Only the former defers to the
+       session. */
+    var isFooterPage = document.body.classList.contains("page-inner");
     var seen = false;
-    try { seen = window.sessionStorage.getItem(SEEN) === "1"; } catch (e) {}
+    if (isFooterPage) {
+      try { seen = window.sessionStorage.getItem(SEEN) === "1"; } catch (e) {}
+    }
 
     if (!seen) {
       clearEntryState();
@@ -632,6 +639,112 @@
     }
     form.appendChild(i);
   });
+
+
+  /* ── Attachment inspection ────────────────────────────────────────
+     A browser cannot run an antivirus scanner: there is no signature
+     database and no sandbox to detonate anything in. What it can do, and
+     what this does, is read the bytes before they are sent and refuse
+     anything that is not what it claims to be or that carries content
+     designed to run on open.
+
+     That covers the attacks this form is actually exposed to -- an
+     executable renamed to .pdf, a macro-enabled document wearing a .docx
+     extension, a PDF with an auto-run action, an RTF with an embedded
+     object -- none of which the extension or the browser's declared MIME
+     type would catch, because both are supplied by whoever is uploading.
+
+     It is not a substitute for scanning the file against known malware.
+     That needs a server, and is noted in the delivery notes. */
+
+  var SIGNATURES = [
+    { name: "a Windows program", bytes: [0x4D, 0x5A] },                       /* MZ    */
+    { name: "a Linux program",   bytes: [0x7F, 0x45, 0x4C, 0x46] },           /* ELF   */
+    { name: "a macOS program",   bytes: [0xCF, 0xFA, 0xED, 0xFE] },
+    { name: "a macOS program",   bytes: [0xCE, 0xFA, 0xED, 0xFE] },
+    { name: "a Java program",    bytes: [0xCA, 0xFE, 0xBA, 0xBE] },
+    { name: "a shell script",    bytes: [0x23, 0x21] }                        /* #!    */
+  ];
+
+  function startsWith(bytes, sig) {
+    for (var i = 0; i < sig.length; i++) if (bytes[i] !== sig[i]) return false;
+    return true;
+  }
+
+  /* Searching bytes rather than decoding to text: a PDF or a ZIP is not
+     valid UTF-8 and decoding it would corrupt exactly the markers being
+     looked for. */
+  function contains(bytes, needle) {
+    var n = [];
+    for (var i = 0; i < needle.length; i++) n.push(needle.charCodeAt(i));
+    var limit = bytes.length - n.length;
+    outer:
+    for (var p = 0; p <= limit; p++) {
+      for (var k = 0; k < n.length; k++) if (bytes[p + k] !== n[k]) continue outer;
+      return true;
+    }
+    return false;
+  }
+
+  var PDF_ACTIVE = ["/JavaScript", "/JS", "/OpenAction", "/AA", "/Launch", "/EmbeddedFile"];
+  var RTF_ACTIVE = ["\\objdata", "\\objupdate", "\\objemb", "\\objautlink"];
+
+  function inspectBytes(bytes, ext) {
+    var i;
+
+    for (i = 0; i < SIGNATURES.length; i++) {
+      if (startsWith(bytes, SIGNATURES[i].bytes)) {
+        return "This file is " + SIGNATURES[i].name + ", not a document. "
+             + "Please attach a r\u00e9sum\u00e9 as a PDF or Word document.";
+      }
+    }
+
+    var isPDF = startsWith(bytes, [0x25, 0x50, 0x44, 0x46]);          /* %PDF  */
+    var isZIP = startsWith(bytes, [0x50, 0x4B, 0x03, 0x04]);          /* PK    */
+    var isOLE = startsWith(bytes, [0xD0, 0xCF, 0x11, 0xE0]);          /* .doc  */
+    var isRTF = startsWith(bytes, [0x7B, 0x5C, 0x72, 0x74, 0x66]);    /* {\rtf */
+
+    /* The extension has to agree with the bytes. A mismatch is either a
+       mistake worth catching or a disguise worth refusing. */
+    if (ext === "pdf" && !isPDF) return "This file is named .pdf but is not a PDF.";
+    if (ext === "docx" && !isZIP) return "This file is named .docx but is not a Word document.";
+    if (ext === "doc" && !(isOLE || isRTF)) return "This file is named .doc but is not a Word document.";
+    if (ext === "rtf" && !isRTF) return "This file is named .rtf but is not an RTF document.";
+
+    if (isPDF) {
+      for (i = 0; i < PDF_ACTIVE.length; i++) {
+        if (contains(bytes, PDF_ACTIVE[i])) {
+          return "This PDF contains embedded scripting or an action that runs when it is "
+               + "opened. Please attach a plain document, or print it to a new PDF and "
+               + "attach that.";
+        }
+      }
+    }
+
+    if (isZIP && contains(bytes, "vbaProject.bin")) {
+      return "This document contains macros. Please save it without macros, or as a PDF.";
+    }
+
+    if (isRTF) {
+      for (i = 0; i < RTF_ACTIVE.length; i++) {
+        if (contains(bytes, RTF_ACTIVE[i])) {
+          return "This document contains an embedded object. Please attach it as a PDF.";
+        }
+      }
+    }
+
+    return null;   /* nothing found */
+  }
+
+  function inspect(file) {
+    var ext = (file.name.split(".").pop() || "").toLowerCase();
+    return file.arrayBuffer().then(function (buf) {
+      return inspectBytes(new Uint8Array(buf), ext);
+    }).catch(function () {
+      /* Unreadable is not the same as unsafe, but it is not sendable either. */
+      return "This file could not be read. Please try attaching it again.";
+    });
+  }
 
   function fieldOf(el) { return el.closest(".pdcm-field"); }
   function errFor(id) { return form.querySelector('.pdcm-err[data-for="' + id + '"]'); }
@@ -762,7 +875,37 @@
     }
 
     button.disabled = true;
-    button.textContent = "Sending…";
+    button.textContent = "Checking\u2026";
+
+    /* The attachments are read and inspected before anything leaves the
+       browser. Sending first and checking later would mean the firm's inbox
+       is where a bad file is discovered. */
+    var checks = [];
+    ["pa-resume", "pa-cover"].forEach(function (id) {
+      var el = document.getElementById(id);
+      var f = el && el.files && el.files[0];
+      if (f) checks.push(inspect(f).then(function (problem) { return { el: el, problem: problem }; }));
+    });
+
+    Promise.all(checks).then(function (results) {
+      var failed = null;
+      for (var i = 0; i < results.length; i++) {
+        if (results[i].problem) { failed = results[i]; break; }
+      }
+      if (failed) {
+        button.disabled = false;
+        button.textContent = "Submit Application";
+        setInvalid(failed.el, true);
+        failed.el.focus();
+        showStatus(failed.problem);
+        return;
+      }
+      send();
+    });
+  });
+
+  function send() {
+    button.textContent = "Sending\u2026";
 
     /* This posts the form normally rather than in the background.
        The relay's background (/ajax/) endpoint accepts the text fields but
@@ -772,7 +915,7 @@
        attachment decides the method. A normal POST carries the files, and
        RETURN_TO brings the candidate straight back here. */
     HTMLFormElement.prototype.submit.call(form);
-  });
+  }
 })();
 
 
@@ -1120,4 +1263,52 @@
     }
     return native.apply(null, arguments);
   };
+})();
+
+
+/* The hero's lower edge dissolves into the section below it rather than
+   ending on a hard line. The amount is read from scroll position on every
+   frame rather than played as a one-way animation, so scrolling back up
+   unwinds it exactly as scrolling down made it -- the same gesture in
+   reverse, not a second animation that happens to run backwards.
+
+   It is written to a custom property and the blending is left to CSS, which
+   keeps the work on the compositor instead of in this handler. */
+(function () {
+  "use strict";
+
+  var hero = document.querySelector(".hero");
+  if (!hero) return;
+
+  var reduce = false;
+  try {
+    reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (e) {}
+  if (reduce) return;   /* the stylesheet already holds it resolved */
+
+  var ticking = false;
+  var last = -1;
+
+  function frame() {
+    ticking = false;
+    var h = hero.offsetHeight || window.innerHeight;
+    /* Fully resolved by the time the hero is two thirds gone, so the join is
+       already made when the section below reaches the eye. */
+    var t = (window.scrollY || window.pageYOffset || 0) / (h * 0.66);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    /* Ease so the edge softens early and settles, rather than tracking the
+       wheel one to one. */
+    var v = t * t * (3 - 2 * t);
+    if (Math.abs(v - last) < 0.004) return;
+    last = v;
+    hero.style.setProperty("--hero-dissolve", v.toFixed(3));
+  }
+
+  function onScroll() {
+    if (!ticking) { ticking = true; window.requestAnimationFrame(frame); }
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  frame();
 })();
