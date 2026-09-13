@@ -3577,12 +3577,19 @@ footer .foot-top { padding-bottom: 22px; }
      viewport width suggests. */
   var quality = 1;
 
-  /* preserveDrawingBuffer only on the reduced-motion path: there we draw a
-     single frame, and without it the compositor may discard the backbuffer
-     and leave the canvas blank. The animated path redraws every frame and
-     keeps the faster default. */
+  /* Reduced motion now slows the field rather than freezing it. The setting
+     exists to spare people from motion that can provoke discomfort: parallax,
+     zooming, spinning, anything travelling fast across the view. A dim
+     gradient brightening and dimming at a third speed has none of that, and
+     freezing it outright was leaving the hero looking broken. Pointer
+     tracking still stays off. Set MOTION_WHEN_REDUCED to 0 to restore a
+     completely still field. */
+  var MOTION_WHEN_REDUCED = 0.35;
+
+  /* The buffer is redrawn every frame on both paths now, so the slower
+     preserved-buffer mode is no longer needed. */
   var attrs = { antialias: false, alpha: false, depth: false,
-                preserveDrawingBuffer: reduce };
+                preserveDrawingBuffer: MOTION_WHEN_REDUCED === 0 && reduce };
 
   /* WebGL1 for reach. A failure at any point leaves the hero's existing
      CSS gradient in place, which is why the canvas starts at opacity 0. */
@@ -3613,7 +3620,7 @@ footer .foot-top { padding-bottom: 22px; }
 
     "void main(){",
     "  vec2 p=(gl_FragCoord.xy-0.5*u_res)/u_res.y;",
-    "  float t=u_time*0.16;",
+    "  float t=u_time*0.26;",
     /* Coordinates are normalised by height, so the visible horizontal extent
        collapses on a tall narrow screen: +/-0.79 on a desktop hero but only
        +/-0.23 on a phone. Light positions fixed in absolute units therefore
@@ -3661,9 +3668,9 @@ footer .foot-top { padding-bottom: 22px; }
        instead of as warmth. Mixing pulls blue down and gives an actually warm
        core. Sparing, per the guideline role, is about area, not saturation:
        the falloff is tight, so gold is a small minority of the frame. */
-    "  float core=pow(glow,1.55)*(0.62+0.38*f);",
-    "  col=mix(col,gold*0.80,clamp(core*0.66,0.0,0.62));",
-    "  col+=gold*glow*(0.055+0.085*f);",
+    "  float core=pow(glow,1.45)*(0.62+0.38*f);",
+    "  col=mix(col,gold*0.86,clamp(core*0.78,0.0,0.70));",
+    "  col+=gold*glow*(0.075+0.105*f);",
 
     "  float vig=smoothstep(1.30,0.22,length(p*vec2(0.82,1.0)));",
     "  col*=0.54+0.46*vig;",
@@ -3759,15 +3766,18 @@ footer .foot-top { padding-bottom: 22px; }
     }
   }
 
+  var rate = reduce ? MOTION_WHEN_REDUCED : 1;
+
   function frame(now) {
     if (t0 === null) t0 = now;
     tune(now);
-    draw((now - t0) / 1000);
+    draw((now - t0) / 1000 * rate);
     raf = window.requestAnimationFrame(frame);
   }
 
   function play() {
-    if (running || reduce || lost) return;
+    if (running || lost) return;
+    if (reduce && MOTION_WHEN_REDUCED === 0) return;
     running = true;
     last = null;
     raf = window.requestAnimationFrame(frame);
@@ -3795,7 +3805,7 @@ footer .foot-top { padding-bottom: 22px; }
     if (!build()) return;
     t0 = null;
     size();
-    if (reduce) draw(0); else play();
+    if (reduce && MOTION_WHEN_REDUCED === 0) draw(0); else play();
   }, false);
 
   var rt = null;
@@ -3814,7 +3824,7 @@ footer .foot-top { padding-bottom: 22px; }
   /* Nothing to draw while the hero is off screen or the tab is hidden. */
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) { pause(); return; }
-    if (reduce) draw(0); else play();
+    if (reduce && MOTION_WHEN_REDUCED === 0) draw(0); else play();
   });
 
   if (window.IntersectionObserver) {
