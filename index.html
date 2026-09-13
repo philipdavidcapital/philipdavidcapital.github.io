@@ -4042,14 +4042,26 @@ footer .foot-top { padding-bottom: 22px; }
      The address is already published in the Contact section, so naming it
      here exposes nothing new. To move to another relay (Formspree,
      Web3Forms), change these two lines and nothing else. */
-  var ENDPOINT      = "https://formsubmit.co/jgarrison@philipdavidcapital.com";
-  var ENDPOINT_AJAX = "https://formsubmit.co/ajax/jgarrison@philipdavidcapital.com";
+  var ENDPOINT  = "https://formsubmit.co/jgarrison@philipdavidcapital.com";
+
+  /* Where the relay sends the candidate once it has the application. The
+     page reopens the Careers panel on its acknowledgement, so the applicant
+     never sees the relay's own branding. */
+  var RETURN_TO = location.origin + location.pathname + "?application=received";
 
   var MAX_BYTES = 5 * 1024 * 1024;
+
+  /* The relay rejects a submission whose uploads exceed 10MB in total, and a
+     rejection at that point loses the whole application. Two files at the
+     per-file cap would land exactly on the limit before the text fields are
+     counted, so the combined total is held below it with room to spare. */
+  var MAX_TOTAL_BYTES = 9 * 1024 * 1024;
+
   var ALLOWED = ["pdf", "doc", "docx", "txt", "rtf"];
 
   var form = document.getElementById("pdcmApply");
   if (!form) return;
+  var oversize = false;
   var status = document.getElementById("pdcmApplyStatus");
   var done = document.getElementById("pdcmApplyDone");
   var button = form.querySelector(".pdcm-apply-send");
@@ -4060,6 +4072,7 @@ footer .foot-top { padding-bottom: 22px; }
   [["_subject", "Careers application — philipdavidcapital.com"],
    ["_template", "table"],
    ["_captcha", "false"],
+   ["_next", RETURN_TO],
    ["_honey", ""]].forEach(function (pair) {
     var i = document.createElement("input");
     i.type = pair[0] === "_honey" ? "text" : "hidden";
@@ -4111,7 +4124,24 @@ footer .foot-top { padding-bottom: 22px; }
       setInvalid(el, !ok);
       if (!ok && !bad) bad = el;
     });
+
+    if (!bad && totalBytes() > MAX_TOTAL_BYTES) {
+      var resume = document.getElementById("pa-resume");
+      setInvalid(resume, true);
+      oversize = true;
+      bad = resume;
+    }
     return bad;
+  }
+
+  function totalBytes() {
+    var n = 0;
+    ["pa-resume", "pa-cover"].forEach(function (id) {
+      var el = document.getElementById(id);
+      var f = el && el.files && el.files[0];
+      if (f) n += f.size;
+    });
+    return n;
   }
 
   form.addEventListener("input", function (e) {
@@ -4139,6 +4169,38 @@ footer .foot-top { padding-bottom: 22px; }
     }
   }
 
+  /* The return trip. The relay has the application and has sent the
+     candidate back to RETURN_TO, so reopen the Careers panel showing the
+     acknowledgement instead of the empty form they just filled in. The
+     entry notice opens over every load by design, so this waits for it to
+     be acknowledged rather than fighting it. */
+  (function handleReturn() {
+    if (location.search.indexOf("application=received") === -1) return;
+
+    succeed();
+
+    /* Drop the parameter so a refresh or a shared link is an ordinary
+       visit, not a second acknowledgement. */
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, "", location.pathname + location.hash);
+    }
+
+    var trigger = document.querySelector('[data-modal-trigger="careersModal"]');
+    if (!trigger) return;
+
+    function openIt() { trigger.click(); }
+
+    var gate = document.querySelector("[data-entry-disclaimer-close]");
+    if (gate && document.body.classList.contains("entry-disclaimer-open")) {
+      gate.addEventListener("click", function once() {
+        gate.removeEventListener("click", once);
+        window.setTimeout(openIt, 260);
+      });
+    } else {
+      window.setTimeout(openIt, 260);
+    }
+  })();
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     showStatus("");
@@ -4146,32 +4208,24 @@ footer .foot-top { padding-bottom: 22px; }
     var bad = validate();
     if (bad) {
       bad.focus();
-      showStatus("Please correct the highlighted fields.");
+      showStatus(oversize
+        ? "The r\u00e9sum\u00e9 and cover letter come to more than 9\u00a0MB together. Please attach smaller files."
+        : "Please correct the highlighted fields.");
+      oversize = false;
       return;
     }
 
     button.disabled = true;
     button.textContent = "Sending…";
 
-    /* Preferred path: post in the background so the candidate stays on the
-       page and gets a real answer. If that fails for any reason -- the relay
-       not yet activated, a network error, an attachment the background
-       endpoint will not take -- fall back to submitting the form normally,
-       which carries the file for certain and lands on the relay's own
-       confirmation. Nothing is silently lost either way. */
-    var data = new FormData(form);
-
-    fetch(ENDPOINT_AJAX, { method: "POST", body: data, headers: { Accept: "application/json" } })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
-      .then(function (j) {
-        if (j && (j.success === "true" || j.success === true)) succeed();
-        else throw new Error("relay declined");
-      })
-      .catch(function () {
-        /* Native submit: guaranteed to carry the attachment. */
-        form.setAttribute("action", ENDPOINT);
-        HTMLFormElement.prototype.submit.call(form);
-      });
+    /* This posts the form normally rather than in the background.
+       The relay's background (/ajax/) endpoint accepts the text fields but
+       discards file uploads: the first live application arrived with no
+       resume and no cover-letter row at all, only the typed answers. An
+       application without the resume is worse than no application, so the
+       attachment decides the method. A normal POST carries the files, and
+       RETURN_TO brings the candidate straight back here. */
+    HTMLFormElement.prototype.submit.call(form);
   });
 })();
 </script>
