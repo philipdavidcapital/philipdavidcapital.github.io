@@ -66,7 +66,7 @@ Triggers → add route `philipdavidcapital.com/api/apply`.
 
 ```sh
 npm install
-npm test     # 35 checks across three suites
+npm test     # 39 checks across three suites
 npm run check   # validates wrangler.toml and bundles, without deploying
 ```
 
@@ -86,9 +86,44 @@ The worker runs unmodified under Node, which is what makes that last suite
 possible: Node supplies the same FormData, DecompressionStream,
 crypto.subtle and btoa that Workers do.
 
+## Staying inside the free plan
+
+Cloudflare's free plan allows **10ms of CPU per request**, and that budget --
+not taste -- set three decisions here. CPU time excludes waiting on the
+network, so a lookup over HTTP is free; work done on bytes is not.
+
+| | measured | where it runs |
+|---|---|---|
+| Reading an upload into memory | ~2.6 ms per MB | here, unavoidably |
+| Decoding the search windows | ~1.5 ms | here |
+| SHA-256 of a file | ~8 ms, any size | **the page** |
+| Inflating one PDF stream | ~9 ms | **the page**, unless `DEEP_SCAN=1` |
+
+So:
+
+- **Attachments are capped at 1 MB each, 1.5 MB combined.** The largest
+  accepted submission measures 5.4 ms median, 8.4 ms worst over twelve runs;
+  an ordinary resume is nearer 2 ms. The page enforces the same limits, so
+  nobody is refused after submitting.
+- **The page computes the SHA-256** and sends it along; this worker only asks
+  VirusTotal about it. A sender who skips the page can therefore lie about the
+  hash — but that check exists to catch malware an applicant does not know
+  they are carrying, and someone deliberately bypassing the page is already
+  past it. Every check that reads the file's actual structure runs here.
+- **Compressed-stream scanning is off by default.** One decompression spends
+  the whole budget. The page does it instead, where the applicant's own
+  processor is free. Set `DEEP_SCAN=1` to enable it here, which needs a paid
+  plan.
+
+Those figures were measured under Node, which is a stand-in for the Workers
+runtime rather than the thing itself — Node's own Blob handling accounts for
+about two thirds of the per-megabyte read cost, so the real figure is likely
+lower. The limits are set to leave room for the stand-in being wrong.
+
 ## What this still is not
 
 Not malware detection by signature. A newly made exploit in a well-formed PDF
 is unknown to VirusTotal and passes every static check here. What this stops
-is disguised executables, documents that run something on open, and samples
+is disguised executables, documents that run something on open, macro-carrying
+files, documents that fetch content from the internet when opened, and samples
 that have been seen before. Treat an attachment from a stranger accordingly.

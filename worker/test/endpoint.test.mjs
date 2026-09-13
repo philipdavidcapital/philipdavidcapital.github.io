@@ -38,6 +38,7 @@ function submission(over = {}, files = { Resume: 'good.pdf' }) {
   for (const [field, name] of Object.entries(files)) {
     if (!name) continue;
     fd.set(field, new Blob([read(name)]), name);
+    fd.set(`${field} SHA256`, 'a'.repeat(64));   // the page computes this
   }
   return new Request('https://api.example/apply', {
     method: 'POST', body: fd,
@@ -88,8 +89,39 @@ await check('a missing résumé is refused', async () => {
   eq(r.status, 400, 'status'); eq(sent, null, 'nothing sent');
 });
 
-await check('a hostile attachment is refused, nothing sent', async () => {
+await check('a disguised executable is refused, nothing sent', async () => {
+  const r = await worker.fetch(submission({}, { Resume: 'exe.pdf' }), ENV);
+  eq(r.status, 400, 'status');
+  eq(/Windows program/.test((await r.json()).error), true, 'explains why');
+  eq(sent, null, 'nothing sent');
+});
+
+await check('a macro-carrying document is refused, nothing sent', async () => {
+  const r = await worker.fetch(submission({}, { Resume: 'macro.docx' }), ENV);
+  eq(r.status, 400, 'status');
+  eq(/macros/.test((await r.json()).error), true, 'explains why');
+  eq(sent, null, 'nothing sent');
+});
+
+await check('a document fetching a remote template is refused', async () => {
+  const r = await worker.fetch(submission({}, { Resume: 'remote-template.docx' }), ENV);
+  eq(r.status, 400, 'status');
+  eq(sent, null, 'nothing sent');
+});
+
+/* The compressed-stream case is the one the free plan cannot afford on the
+   server -- one decompression spends the whole CPU budget -- so the page does
+   it and the worker does not. This asserts that boundary in both directions
+   rather than leaving it to a comment: with the deep scan off the file gets
+   through, and with it on it does not. Turning it on requires a paid plan. */
+await check('compressed-stream JavaScript passes with the deep scan off', async () => {
   const r = await worker.fetch(submission({}, { Resume: 'compressed-js.pdf' }), ENV);
+  eq(r.status, 200, 'accepted, as documented');
+});
+
+await check('compressed-stream JavaScript is refused with it on', async () => {
+  const r = await worker.fetch(submission({}, { Resume: 'compressed-js.pdf' }),
+                               { ...ENV, DEEP_SCAN: '1' });
   eq(r.status, 400, 'status');
   eq(/active content/.test((await r.json()).error), true, 'explains why');
   eq(sent, null, 'nothing sent');

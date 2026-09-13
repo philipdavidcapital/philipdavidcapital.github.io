@@ -3461,14 +3461,14 @@ footer .foot-top { padding-bottom: 22px; }
         <div class="pdcm-field">
           <label for="pa-resume">R&eacute;sum&eacute; / CV <span aria-hidden="true">*</span></label>
           <input type="file" id="pa-resume" name="Resume" accept=".pdf,.doc,.docx,.txt,.rtf" required>
-          <p class="pdcm-note">Accepted file types: pdf, doc, docx, txt, rtf. Maximum 5&nbsp;MB.</p>
+          <p class="pdcm-note">Accepted file types: pdf, doc, docx, txt, rtf. Maximum 1&nbsp;MB.</p>
           <p class="pdcm-err" data-for="pa-resume" hidden>Please attach a r&eacute;sum&eacute; in one of the accepted formats, under 5&nbsp;MB.</p>
         </div>
 
         <div class="pdcm-field">
           <label for="pa-cover">Cover Letter</label>
           <input type="file" id="pa-cover" name="Cover Letter" accept=".pdf,.doc,.docx,.txt,.rtf">
-          <p class="pdcm-note">Accepted file types: pdf, doc, docx, txt, rtf. Maximum 5&nbsp;MB.</p>
+          <p class="pdcm-note">Accepted file types: pdf, doc, docx, txt, rtf. Maximum 1&nbsp;MB.</p>
           <p class="pdcm-err" data-for="pa-cover" hidden>Please use one of the accepted formats, under 5&nbsp;MB.</p>
         </div>
 
@@ -4107,13 +4107,16 @@ footer .foot-top { padding-bottom: 22px; }
      never sees the relay's own branding. */
   var RETURN_TO = location.origin + location.pathname + "?application=received";
 
-  var MAX_BYTES = 5 * 1024 * 1024;
+  /* These must match worker/src/inspect.js. The endpoint's limits are set
+     by Cloudflare's free plan, which allows ten milliseconds of processing a
+     request -- and simply reading an upload costs a share of that. A page
+     that accepted more than the endpoint does would let someone fill the
+     form, attach a file, and be refused only after submitting. */
+  var MAX_BYTES = 1024 * 1024;
 
-  /* The relay rejects a submission whose uploads exceed 10MB in total, and a
-     rejection at that point loses the whole application. Two files at the
-     per-file cap would land exactly on the limit before the text fields are
-     counted, so the combined total is held below it with room to spare. */
-  var MAX_TOTAL_BYTES = 9 * 1024 * 1024;
+  /* Held below what the endpoint accepts, so a submission is never refused
+     after the applicant has already sent it. */
+  var MAX_TOTAL_BYTES = 1536 * 1024;
 
   var ALLOWED = ["pdf", "doc", "docx", "txt", "rtf"];
 
@@ -4241,10 +4244,30 @@ footer .foot-top { padding-bottom: 22px; }
     return null;   /* nothing found */
   }
 
+  /* The endpoint cannot afford to hash: on Cloudflare's free plan one digest
+     costs most of the ten milliseconds a request is allowed, whatever the
+     file's size. Here it is free, and the bytes are already in hand for the
+     checks above. The hash travels with the form and the endpoint uses it to
+     ask whether the file is a known malware sample -- a question answered
+     over the network, which costs it no processing at all. */
+  function hashOf(buf) {
+    if (!window.crypto || !window.crypto.subtle) return Promise.resolve("");
+    return window.crypto.subtle.digest("SHA-256", buf).then(function (d) {
+      return Array.prototype.map.call(new Uint8Array(d), function (b) {
+        return ("0" + b.toString(16)).slice(-2);
+      }).join("");
+    }).catch(function () { return ""; });
+  }
+
   function inspect(file) {
     var ext = (file.name.split(".").pop() || "").toLowerCase();
     return file.arrayBuffer().then(function (buf) {
-      return inspectBytes(new Uint8Array(buf), ext);
+      var problem = inspectBytes(new Uint8Array(buf), ext);
+      if (problem) return problem;
+      return hashOf(buf).then(function (hex) {
+        if (hex) setHash(file.field, hex);
+        return null;
+      });
     }).catch(function () {
       /* Unreadable is not the same as unsafe, but it is not sendable either. */
       return "This file could not be read. Please try attaching it again.";
@@ -4331,6 +4354,19 @@ footer .foot-top { padding-bottom: 22px; }
   if (countryEl) {
     countryEl.addEventListener("change", function () { buildStateField(countryEl.value); });
     buildStateField(countryEl.value);
+  }
+
+  function setHash(fieldName, hex) {
+    var id = "pdcm-hash-" + fieldName.replace(/\W+/g, "-");
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement("input");
+      el.type = "hidden";
+      el.id = id;
+      el.name = fieldName + " SHA256";
+      form.appendChild(el);
+    }
+    el.value = hex;
   }
 
   function fieldOf(el) { return el.closest(".pdcm-field"); }
@@ -4455,7 +4491,7 @@ footer .foot-top { padding-bottom: 22px; }
     if (bad) {
       bad.focus();
       showStatus(oversize
-        ? "The r\u00e9sum\u00e9 and cover letter come to more than 9\u00a0MB together. Please attach smaller files."
+        ? "The r\u00e9sum\u00e9 and cover letter come to more than 1.5\u00a0MB together. Please attach smaller files."
         : "Please correct the highlighted fields.");
       oversize = false;
       return;
@@ -4471,7 +4507,12 @@ footer .foot-top { padding-bottom: 22px; }
     ["pa-resume", "pa-cover"].forEach(function (id) {
       var el = document.getElementById(id);
       var f = el && el.files && el.files[0];
-      if (f) checks.push(inspect(f).then(function (problem) { return { el: el, problem: problem }; }));
+      if (f) {
+        /* inspect() needs to know which field the file came from, so the hash
+           it computes can be labelled for the endpoint. */
+        var named = { name: f.name, field: el.name, arrayBuffer: function () { return f.arrayBuffer(); } };
+        checks.push(inspect(named).then(function (problem) { return { el: el, problem: problem }; }));
+      }
     });
 
     Promise.all(checks).then(function (results) {

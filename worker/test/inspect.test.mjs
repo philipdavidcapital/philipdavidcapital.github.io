@@ -14,7 +14,7 @@ const CASES = [
   ['openaction.pdf',       'reject', 'PDF with auto-run JavaScript'],
   ['embed.rtf',            'reject', 'RTF with embedded object'],
   ['fake.pdf',             'reject', 'plain text named .pdf'],
-  ['compressed-js.pdf',    'reject', 'JavaScript inside a COMPRESSED PDF stream  <- browser cannot catch'],
+  ['compressed-js.pdf',    'reject', 'JavaScript inside a compressed PDF stream (deep scan on)'],
   ['remote-template.docx', 'reject', 'document that fetches a template on open   <- browser cannot catch'],
   ['good.pdf',             'accept', 'ordinary PDF'],
   ['good.docx',            'accept', 'ordinary Word document'],
@@ -32,7 +32,7 @@ if (JSON.stringify(onDisk) !== JSON.stringify(covered)) {
 let pass = 0, fail = 0;
 for (const [file, expect, what] of CASES) {
   const bytes = new Uint8Array(readFileSync(new URL(file, DIR)));
-  const problem = await inspect(file, bytes);
+  const problem = await inspect(file, bytes, true);   // deep scan exercised here
   const ok = expect === 'reject' ? problem !== null : problem === null;
   ok ? pass++ : fail++;
   const detail = problem ? `"${problem.slice(0, 62)}"` : 'accepted';

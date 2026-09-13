@@ -14,15 +14,22 @@
  * Absent an API key this is skipped rather than failing the submission.
  */
 
-export async function sha256Hex(bytes) {
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+/* The hash is computed by the page, not here. Hashing costs about eight
+   milliseconds whatever the file's size -- nearly all of the free plan's ten
+   -- while the applicant's own processor does it for nothing. The lookup
+   itself is network I/O, which Cloudflare does not count against CPU time.
 
-export async function knownMalicious(bytes, apiKey, fetchImpl = fetch) {
+   A sender who skips the page can therefore supply a hash that is not the
+   file's. That matters less than it sounds: this check exists to recognise
+   malware an ordinary applicant does not know they are carrying, and anyone
+   deliberately bypassing the page is already past it. Everything that does
+   not depend on being told the truth -- the format checks, the macro and
+   embedded-object checks -- runs here on the bytes themselves. */
+export async function knownMalicious(hash, apiKey, fetchImpl = fetch) {
   if (!apiKey) return { checked: false, malicious: false, reason: 'no API key configured' };
-
-  const hash = await sha256Hex(bytes);
+  if (!/^[0-9a-f]{64}$/.test(hash || '')) {
+    return { checked: false, malicious: false, reason: 'no usable hash supplied' };
+  }
   let res;
   try {
     res = await fetchImpl(`https://www.virustotal.com/api/v3/files/${hash}`, {

@@ -6,7 +6,7 @@
  * notification that lands in the firm's inbox carries no advertising.
  */
 
-import { inspect, MAX_TOTAL_BYTES } from './inspect.js';
+import { inspect, deepScanApplies, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './inspect.js';
 import { knownMalicious } from './virustotal.js';
 import { buildEmail } from './email.js';
 
@@ -70,35 +70,49 @@ export default {
       return json({ error: 'Please enter a valid email address.' }, 400, origin);
     }
 
-    const files = [];
+    /* Sizes are settled before anything is read. A File knows its own length,
+       and reading a two-megabyte upload into memory costs several of the ten
+       milliseconds this request is allowed -- so an attachment that was never
+       going to be accepted should not be paid for first. */
+    const chosen = [];
     let total = 0;
     for (const field of FILE_FIELDS) {
       const f = form.get(field);
-      if (!f || typeof f === 'string' || !f.name) continue;
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      if (!bytes.length) continue;
-      total += bytes.length;
-      files.push({ field, filename: f.name, bytes });
+      if (!f || typeof f === 'string' || !f.name || !f.size) continue;
+      if (f.size > MAX_FILE_BYTES) {
+        return json({ error: `${f.name} is larger than 1 MB.` }, 400, origin);
+      }
+      total += f.size;
+      chosen.push({ field, file: f });
     }
 
-    if (!files.some((f) => f.field === 'Resume')) {
+    if (!chosen.some((c) => c.field === 'Resume')) {
       return json({ error: 'A résumé is required.' }, 400, origin);
     }
     if (total > MAX_TOTAL_BYTES) {
-      return json({ error: 'The attachments come to more than 9 MB together.' }, 400, origin);
+      return json({ error: 'The attachments come to more than 1.5 MB together.' }, 400, origin);
+    }
+
+    const files = [];
+    for (const c of chosen) {
+      files.push({ field: c.field, filename: c.file.name, bytes: new Uint8Array(await c.file.arrayBuffer()) });
     }
 
     /* Inspection first, and nothing is sent if it fails. The applicant is
        told what is wrong so they can correct it, rather than the firm
        discovering it in the inbox. */
+    /* Off on the free plan, where one decompression would spend the whole
+       ten-millisecond budget. See inspect.js. */
+    const deep = env.DEEP_SCAN === '1';
     for (const f of files) {
-      const problem = await inspect(f.filename, f.bytes);
+      const problem = await inspect(f.filename, f.bytes, deep);
       if (problem) return json({ error: problem }, 400, origin);
     }
 
     const scans = {};
     for (const f of files) {
-      const scan = await knownMalicious(f.bytes, env.VIRUSTOTAL_API_KEY);
+      const scan = await knownMalicious(fields[`${f.field} SHA256`], env.VIRUSTOTAL_API_KEY);
+      scan.deep = deepScanApplies(f.bytes, deep);
       scans[f.field] = scan;
       if (scan.malicious) {
         return json({ error: `${f.filename} was identified as malware and has not been sent.` }, 400, origin);
