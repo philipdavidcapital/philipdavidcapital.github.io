@@ -4579,9 +4579,10 @@ footer .foot-top { padding-bottom: 22px; }
     /* Time rate. This has been tuned from both directions: at 0.055 the light
        swept its full arc in 71 seconds and read as a still image; at 0.26 it
        swept in 15 seconds and read as animation rather than ambience. 0.12 is
-       the midpoint -- a 33-second sweep, about 5% of frame width per second at
-       its fastest. Slowing this slows the whole field, warp included. */
-    "  float t=u_time*0.12;",
+       the midpoint -- a 33-second sweep. 0.09 is a further quarter slower
+       again, a 44-second sweep, which is where it was left after watching it
+       run. Slowing this slows the whole field, warp included. */
+    "  float t=u_time*0.09;",
     /* Coordinates are normalised by height, so the visible horizontal extent
        collapses on a tall narrow screen: +/-0.79 on a desktop hero but only
        +/-0.23 on a phone. Light positions fixed in absolute units therefore
