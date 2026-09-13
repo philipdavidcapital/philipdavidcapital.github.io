@@ -1,0 +1,13 @@
+name = "pdcm-careers"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Secrets are NOT set here. Set them with `wrangler secret put NAME`, which
+# stores them encrypted with Cloudflare rather than in this repository:
+#   RESEND_API_KEY
+#   VIRUSTOTAL_API_KEY   (optional; without it the known-sample check is skipped)
+
+[vars]
+MAIL_TO = "jgarrison@philipdavidcapital.com"
+MAIL_FROM = "Careers <careers@philipdavidcapital.com>"
+ALLOWED_ORIGINS = "https://philipdavidcapital.com,https://www.philipdavidcapital.com"
