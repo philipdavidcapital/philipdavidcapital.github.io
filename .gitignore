@@ -7,3 +7,4 @@ build/
 
 # Rendered from worker/test/email.test.mjs on each run.
 worker/test/email-preview.html
+node_modules/

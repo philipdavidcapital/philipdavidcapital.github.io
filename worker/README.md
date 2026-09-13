@@ -65,12 +65,26 @@ Triggers → add route `philipdavidcapital.com/api/apply`.
 ## Testing
 
 ```sh
-node test/inspect.test.mjs   # 13 files, hostile and ordinary
-node test/email.test.mjs     # writes test/email-preview.html
+npm install
+npm test     # 35 checks across three suites
+npm run check   # validates wrangler.toml and bundles, without deploying
 ```
 
-The inspection tests include two cases the browser-side check cannot catch,
-which is the whole argument for this existing.
+- `test/inspect.test.mjs` — 13 files, hostile and ordinary. Two of them are
+  cases the browser-side check cannot catch, which is the whole argument for
+  this existing.
+- `test/email.test.mjs` — the notification's contents, including that a field
+  containing markup is escaped rather than rendered. Writes
+  `test/email-preview.html` to open in a browser.
+- `test/endpoint.test.mjs` — the whole request path with the network stubbed:
+  a real multipart POST in, and whatever would have gone to Resend captured
+  and inspected. Covers delivery, every refusal, the honeypot, a flagged
+  file, the scanner being unreachable, a mail failure, CORS, and method
+  rejection.
+
+The worker runs unmodified under Node, which is what makes that last suite
+possible: Node supplies the same FormData, DecompressionStream,
+crypto.subtle and btoa that Workers do.
 
 ## What this still is not
 
