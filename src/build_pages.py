@@ -182,8 +182,17 @@ body.page-light .nav-links a[aria-current="page"] { color: var(--capital-blue); 
                             for i in ("firm", "approach", "values", "contact", "careers", "notfound")),
 }
 
+# A url() in a stylesheet resolves against the stylesheet, not the page. Left
+# relative, these would be fetched from /assets/css/ and 404 on every page that
+# uses them, so they are made absolute along with everything else.
+sheet = css + EXTRA_CSS
+for name in ("tulsa%20skyline.jpg", "tulsa-skyline-hires.webp"):
+    if 'url("%s")' % name not in sheet:
+        sys.exit("FAIL: expected url(%s) in the stylesheet" % name)
+    sheet = sheet.replace('url("%s")' % name, 'url("/%s")' % name)
+
 CSS_OUT.parent.mkdir(parents=True, exist_ok=True)
-CSS_OUT.write_text(css + EXTRA_CSS, encoding="utf-8")
+CSS_OUT.write_text(sheet, encoding="utf-8")
 
 
 # ── Shared JS ───────────────────────────────────────────────────────

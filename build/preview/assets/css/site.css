@@ -697,11 +697,11 @@
     padding: 112px 56px 102px;
     background:
       linear-gradient(180deg, rgba(6, 14, 28, 0.70) 0%, rgba(6, 14, 28, 0.76) 100%),
-      url("/tulsa%20skyline.jpg") center center / cover no-repeat;
+      url("../../tulsa%20skyline.jpg") center center / cover no-repeat;
     background-image:
       linear-gradient(180deg, rgba(6, 14, 28, 0.70) 0%, rgba(6, 14, 28, 0.76) 100%),
-      image-set(url("/tulsa-skyline-hires.webp") type("image/webp"),
-                url("/tulsa%20skyline.jpg") type("image/jpeg"));
+      image-set(url("../../tulsa-skyline-hires.webp") type("image/webp"),
+                url("../../tulsa%20skyline.jpg") type("image/jpeg"));
   }
 
   #contact .inner {
@@ -807,11 +807,11 @@
   .contact {
     background:
       linear-gradient(180deg, rgba(6, 14, 28, 0.70) 0%, rgba(6, 14, 28, 0.76) 100%),
-      url("/tulsa%20skyline.jpg") center center / cover no-repeat;
+      url("../../tulsa%20skyline.jpg") center center / cover no-repeat;
     background-image:
       linear-gradient(180deg, rgba(6, 14, 28, 0.70) 0%, rgba(6, 14, 28, 0.76) 100%),
-      image-set(url("/tulsa-skyline-hires.webp") type("image/webp"),
-                url("/tulsa%20skyline.jpg") type("image/jpeg"));
+      image-set(url("../../tulsa-skyline-hires.webp") type("image/webp"),
+                url("../../tulsa%20skyline.jpg") type("image/jpeg"));
     color: var(--cream);
     padding: 180px 56px;
     text-align: center;
