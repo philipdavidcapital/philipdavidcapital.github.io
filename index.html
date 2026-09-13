@@ -3592,7 +3592,7 @@ footer .foot-top { padding-bottom: 32px; }
 
     "void main(){",
     "  vec2 p=(gl_FragCoord.xy-0.5*u_res)/u_res.y;",
-    "  float t=u_time*0.055;",
+    "  float t=u_time*0.16;",
     /* Coordinates are normalised by height, so the visible horizontal extent
        collapses on a tall narrow screen: +/-0.79 on a desktop hero but only
        +/-0.23 on a phone. Light positions fixed in absolute units therefore
@@ -3611,11 +3611,17 @@ footer .foot-top { padding-bottom: 32px; }
 
     /* Two warm sources on different periods. One blob reads as a static
        gradient no matter how it moves; two crossing each other is what
-       makes the field legibly alive. Both sit right of centre, in the open
-       half of the hero, so the headline never needs a scrim over it. */
-    "  vec2 lc=vec2(hx*(0.556+0.114*sin(t*1.6)),0.11+0.06*cos(t*1.25))+u_mouse*vec2(0.11,0.08);",
+       makes the field legibly alive.
+
+       Speed and travel are set from measurement, not taste: at the original
+       values the light crossed 0.32% of the frame per second on a 71 second
+       cycle, which is below what anyone can actually see, and the field read
+       as a still image on every device. Most of the correction is distance
+       rather than speed, so it stays composed rather than hurried. The
+       extremes are kept inside the frame so a light never parks off screen. */
+    "  vec2 lc=vec2(hx*(0.50+0.42*sin(t*1.6)),0.11+0.22*cos(t*1.25))+u_mouse*vec2(0.11,0.08);",
     "  float glow=exp(-length(p-lc)*2.05);",
-    "  vec2 lc2=vec2(hx*(0.303+0.164*sin(t*0.9+2.1)),-0.20+0.10*cos(t*1.05+0.6))+u_mouse*vec2(0.06,0.045);",
+    "  vec2 lc2=vec2(hx*(0.30+0.45*sin(t*0.9+2.1)),-0.20+0.30*cos(t*1.05+0.6))+u_mouse*vec2(0.06,0.045);",
     "  float glow2=exp(-length(p-lc2)*2.60);",
     "  glow=glow+glow2*0.55;",
 
