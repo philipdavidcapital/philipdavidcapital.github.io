@@ -40,6 +40,14 @@
 
 <header class="hero" id="top">
   <canvas class="hero-field" id="heroField" aria-hidden="true"></canvas>
+  <!-- The last stretch of the fade. The canvas renders four levels brighter
+       than the same colour written in CSS -- measured 255,254,250 against
+       251,250,246 -- because the drawing buffer and the page do not resolve
+       colour identically. Letting the shader finish the fade therefore left a
+       four-level step exactly at the join. This settles it in CSS instead, so
+       what meets the section below is the section's own colour by the same
+       route, and the canvas's offset is hidden inside the blend. -->
+  <div class="hero-foot" aria-hidden="true"></div>
   <div class="hero-content">
     <div class="hero-eyebrow label">A Private Family Office · Tulsa, Oklahoma</div>
     <h1 id="heroTypedHeadline" class="hero-typing-target">Quality, structure,<br>and <span class="ital">long-term foresight</span><br>in the management of capital.</h1>

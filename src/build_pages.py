@@ -147,6 +147,23 @@ EXTRA_CSS = """
   .hero { height: 124vh; min-height: 700px; padding-bottom: max(150px, 34vh); }
 }
 
+/* The final settle onto the page's own colour. Sized from the same scroll
+   value that drives the fade, so it grows and unwinds with it. */
+.hero-foot {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: calc(var(--hero-fade, 0px) * 0.26);
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(251, 250, 246, 0) 0%,
+    rgba(251, 250, 246, 0.18) 34%,
+    rgba(251, 250, 246, 0.52) 60%,
+    rgba(251, 250, 246, 0.82) 80%,
+    rgba(251, 250, 246, 0.96) 92%,
+    rgba(251, 250, 246, 1) 100%);
+}
+
 /* ── Footer pages ─────────────────────────────────
    Cross-document view transitions. Chrome and Safari animate between the
    main page and a footer page; Firefox ignores the at-rule and navigates
@@ -174,6 +191,14 @@ __MIRRORED__
    padding under ID selectors, which outrank anything written without one. */
 __CLEARANCE__ { padding-top: 190px; }
 @media (max-width: 700px) { __CLEARANCE__ { padding-top: 150px; } }
+
+/* Country, state and city read as one address, narrowing left to right, and
+   none of them is left absurdly wide. Country carries a little more room
+   because country names are the longest of the three. Below the width where
+   two columns already stack, this stacks with them. */
+.pdcm-apply-row-3 { grid-template-columns: 1.18fr 1fr 1fr; }
+@media (max-width: 900px) { .pdcm-apply-row-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 620px) { .pdcm-apply-row-3 { grid-template-columns: 1fr; } }
 
 /* A footer page keeps the measure the panel had, so its text is not stranded
    across a wide screen. */
@@ -276,7 +301,11 @@ DISSOLVE_JS = """
     var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
     if (Math.abs(v - last) < 0.004) return;
     last = v;
-    hero.style.setProperty("--hero-fade", (v * REACH * h).toFixed(1) + "px");
+    var px = v * REACH * h;
+    /* The custom property still drives the mask on the vignette; the shader
+       reads the same number to do the fade itself. */
+    hero.style.setProperty("--hero-fade", px.toFixed(1) + "px");
+    window.pdcmHeroFade = px;
   }
 
   function onScroll() {

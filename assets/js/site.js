@@ -1048,6 +1048,9 @@
   var FRAG = [
     "precision highp float;",
     "uniform vec2 u_res;uniform float u_time;uniform vec2 u_mouse;",
+    /* How many device pixels at the foot of the canvas the fade occupies.
+       Zero means no fade. Driven by scroll, as the CSS version was. */
+    "uniform float u_fade;",
 
     "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}",
 
@@ -1126,10 +1129,40 @@
     "  col*=0.54+0.46*vig;",
     "  col+=(hash(gl_FragCoord.xy+u_time)-0.5)*0.015;",
 
+    /* The foot of the hero resolves into the page below it. This was done in
+       CSS, by laying an increasingly opaque sheet of the paper colour over the
+       canvas -- which washed the smoke out along with everything else, so the
+       lower half became a flat grey ramp. Flat is also the worst possible
+       ground for a join: with no texture to break it up, a difference of one
+       level reads as a drawn line.
+
+       Doing it here keeps the smoke. Rather than covering the field, the field
+       is re-mapped: the same drifting structure is expressed as gentle
+       darkening of the paper colour instead of lightening of the dark one, so
+       it still moves and still shows, on a pale ground. */
+    "  float fy=u_fade>0.5?clamp((u_fade-gl_FragCoord.y)/u_fade,0.0,1.0):0.0;",
+    "  if(fy>0.0){",
+    /* Slow to begin, so the fade reaches up the hero without touching the
+       headline, and flat at the end so it arrives without a slope. */
+    "    float k=smoothstep(0.0,1.0,pow(fy,1.6));",
+    "    vec3 paper=vec3(0.9843,0.9804,0.9647);",
+    "    float lum=dot(col,vec3(0.2126,0.7152,0.0722));",
+    "    vec3 smoke=paper-vec3(clamp(0.32-lum,0.0,0.32))*0.46;",
+    "    col=mix(col,smoke,k);",
+    /* Approaching paper, but stopping short of it: the element below finishes
+       the last stretch in CSS so the two sides of the join come from the same
+       rendering path. */
+    "    col=mix(col,paper,smoothstep(0.55,1.0,fy)*0.88);",
+    "  }",
+
     "  gl_FragColor=vec4(col,1.0);}"
   ].join("\n");
 
-  var prog = null, uRes = null, uTime = null, uMouse = null;
+  var prog = null, uRes = null, uTime = null, uMouse = null, uFade = null;
+
+  /* Set from scroll by the fade handler, in CSS pixels; converted to device
+     pixels here, because that is what gl_FragCoord counts in. */
+  window.pdcmHeroFade = 0;
 
   function compile(type, src) {
     var sh = gl.createShader(type);
@@ -1165,6 +1198,7 @@
     uRes = gl.getUniformLocation(prog, "u_res");
     uTime = gl.getUniformLocation(prog, "u_time");
     uMouse = gl.getUniformLocation(prog, "u_mouse");
+    uFade = gl.getUniformLocation(prog, "u_fade");
     return true;
   }
 
@@ -1190,6 +1224,8 @@
     gl.uniform2f(uRes, canvas.width, canvas.height);
     gl.uniform1f(uTime, seconds);
     gl.uniform2f(uMouse, mouse.x, mouse.y);
+    var scale = canvas.height / (canvas.clientHeight || canvas.height);
+    gl.uniform1f(uFade, (window.pdcmHeroFade || 0) * scale);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
@@ -1386,7 +1422,11 @@
     var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
     if (Math.abs(v - last) < 0.004) return;
     last = v;
-    hero.style.setProperty("--hero-fade", (v * REACH * h).toFixed(1) + "px");
+    var px = v * REACH * h;
+    /* The custom property still drives the mask on the vignette; the shader
+       reads the same number to do the fade itself. */
+    hero.style.setProperty("--hero-fade", px.toFixed(1) + "px");
+    window.pdcmHeroFade = px;
   }
 
   function onScroll() {

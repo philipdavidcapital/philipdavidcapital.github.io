@@ -252,13 +252,18 @@
   }
 
   @keyframes heroAmbientDrift {
+    /* No filter here. A filter on the hero applies to everything inside it --
+       the canvas, the fade, all of it -- so brightness(1.03) meant nothing in
+       the hero could match a colour outside it, and because it animated, the
+       mismatch drifted between one and four levels over its 28 seconds. That
+       is the line that kept coming back at the foot of the hero, and why it
+       measured differently every time. The hero's own background sits behind
+       the canvas and is not visible, so the filter bought nothing. */
     0% {
       background-position: 0% 0%, 100% 0%, center;
-      filter: saturate(1) brightness(1);
     }
     100% {
       background-position: 78% 64%, 20% 76%, center;
-      filter: saturate(1.05) brightness(1.03);
     }
   }
 
@@ -2815,26 +2820,17 @@ footer .foot-top { padding-bottom: 22px; }
     animation: none !important;
     filter: none !important;
     background:
-      linear-gradient(180deg,
-        transparent 0%,
-        transparent calc(100% - var(--hero-fade, 0px)),
-        rgba(251, 250, 246, 0.010) calc(100% - var(--hero-fade, 0px) * 0.84),
-        rgba(251, 250, 246, 0.040) calc(100% - var(--hero-fade, 0px) * 0.70),
-        rgba(251, 250, 246, 0.095) calc(100% - var(--hero-fade, 0px) * 0.58),
-        rgba(251, 250, 246, 0.175) calc(100% - var(--hero-fade, 0px) * 0.48),
-        rgba(251, 250, 246, 0.275) calc(100% - var(--hero-fade, 0px) * 0.40),
-        rgba(251, 250, 246, 0.390) calc(100% - var(--hero-fade, 0px) * 0.33),
-        rgba(251, 250, 246, 0.510) calc(100% - var(--hero-fade, 0px) * 0.27),
-        rgba(251, 250, 246, 0.625) calc(100% - var(--hero-fade, 0px) * 0.22),
-        rgba(251, 250, 246, 0.725) calc(100% - var(--hero-fade, 0px) * 0.18),
-        rgba(251, 250, 246, 0.800) calc(100% - var(--hero-fade, 0px) * 0.15),
-        rgba(251, 250, 246, 0.870) calc(100% - var(--hero-fade, 0px) * 0.12),
-        rgba(251, 250, 246, 0.930) calc(100% - var(--hero-fade, 0px) * 0.10),
-        rgba(251, 250, 246, 0.980) calc(100% - var(--hero-fade, 0px) * 0.06),
-        rgba(251, 250, 246, 0.9955) calc(100% - var(--hero-fade, 0px) * 0.03),
-        rgba(251, 250, 246, 1) 100%),
       linear-gradient(90deg, rgba(5, 11, 22, 0.570) 0%, rgba(5, 11, 22, 0.368) 34%, rgba(5, 11, 22, 0.055) 62%, transparent 100%),
       linear-gradient(180deg, rgba(5, 11, 22, 0.423) 0%, rgba(5, 11, 22, 0.092) 26%, rgba(5, 11, 22, 0.313) 66%, rgba(5, 11, 22, 0.810) 100%) !important;
+    /* The vignette is lifted away across the fade. Left in place it would
+       darken the pale ground the shader is resolving to, and the two would
+       fight over the same pixels. */
+    -webkit-mask-image: linear-gradient(180deg, #000 0%,
+      #000 calc(100% - var(--hero-fade, 0px)),
+      transparent calc(100% - var(--hero-fade, 0px) * 0.45)) !important;
+    mask-image: linear-gradient(180deg, #000 0%,
+      #000 calc(100% - var(--hero-fade, 0px)),
+      transparent calc(100% - var(--hero-fade, 0px) * 0.45)) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2869,6 +2865,14 @@ footer .foot-top { padding-bottom: 22px; }
      ═══════════════════════════════════════════════════ -->
 <header class="hero" id="top">
   <canvas class="hero-field" id="heroField" aria-hidden="true"></canvas>
+  <!-- The last stretch of the fade. The canvas renders four levels brighter
+       than the same colour written in CSS -- measured 255,254,250 against
+       251,250,246 -- because the drawing buffer and the page do not resolve
+       colour identically. Letting the shader finish the fade therefore left a
+       four-level step exactly at the join. This settles it in CSS instead, so
+       what meets the section below is the section's own colour by the same
+       route, and the canvas's offset is hidden inside the blend. -->
+  <div class="hero-foot" aria-hidden="true"></div>
   <div class="hero-content">
     <div class="hero-eyebrow label">A Private Family Office · Tulsa, Oklahoma</div>
     <h1 id="heroTypedHeadline" class="hero-typing-target">Quality, structure,<br>and <span class="ital">long-term foresight</span><br>in the management of capital.</h1>
@@ -3129,7 +3133,7 @@ footer .foot-top { padding-bottom: 22px; }
       <p>We may update this Privacy Notice from time to time. The most current version will be posted on this website. We encourage you to review this notice periodically for any changes.</p>
 
       <h3>Contacting Us</h3>
-      <p>For questions regarding this Privacy Notice or our handling of personal information, please contact us at clientservices@philipdavidcapital.com or by mail at Philip David Capital Management LLC, 4815 East 112th Street, Tulsa, Oklahoma 74137.</p>
+      <p>For questions regarding this Privacy Notice or our handling of personal information, please contact us at jgarrison@philipdavidcapital.com or by mail at Philip David Capital Management LLC, 4815 East 112th Street, Tulsa, Oklahoma 74137.</p>
     </div>
   </div>
 </div>
@@ -3228,7 +3232,7 @@ footer .foot-top { padding-bottom: 22px; }
           </div>
         </div>
 
-        <div class="pdcm-apply-row">
+        <div class="pdcm-apply-row pdcm-apply-row-3">
           <div class="pdcm-field">
             <label for="pa-country">Country <span aria-hidden="true">*</span></label>
             <select id="pa-country" name="Country" autocomplete="country-name" required>
@@ -3446,12 +3450,11 @@ footer .foot-top { padding-bottom: 22px; }
                  reaches the firm reads the same either way. -->
             <input type="text" id="pa-state" name="State / Region" autocomplete="address-level1">
           </div>
-        </div>
-
-        <div class="pdcm-field">
-          <label for="pa-city">City <span aria-hidden="true">*</span></label>
-          <input type="text" id="pa-city" name="City" autocomplete="address-level2" required>
-          <p class="pdcm-err" data-for="pa-city" hidden>Please enter a city.</p>
+          <div class="pdcm-field">
+            <label for="pa-city">City <span aria-hidden="true">*</span></label>
+            <input type="text" id="pa-city" name="City" autocomplete="address-level2" required>
+            <p class="pdcm-err" data-for="pa-city" hidden>Please enter a city.</p>
+          </div>
         </div>
 
 
@@ -4553,6 +4556,9 @@ footer .foot-top { padding-bottom: 22px; }
   var FRAG = [
     "precision highp float;",
     "uniform vec2 u_res;uniform float u_time;uniform vec2 u_mouse;",
+    /* How many device pixels at the foot of the canvas the fade occupies.
+       Zero means no fade. Driven by scroll, as the CSS version was. */
+    "uniform float u_fade;",
 
     "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}",
 
@@ -4631,10 +4637,40 @@ footer .foot-top { padding-bottom: 22px; }
     "  col*=0.54+0.46*vig;",
     "  col+=(hash(gl_FragCoord.xy+u_time)-0.5)*0.015;",
 
+    /* The foot of the hero resolves into the page below it. This was done in
+       CSS, by laying an increasingly opaque sheet of the paper colour over the
+       canvas -- which washed the smoke out along with everything else, so the
+       lower half became a flat grey ramp. Flat is also the worst possible
+       ground for a join: with no texture to break it up, a difference of one
+       level reads as a drawn line.
+
+       Doing it here keeps the smoke. Rather than covering the field, the field
+       is re-mapped: the same drifting structure is expressed as gentle
+       darkening of the paper colour instead of lightening of the dark one, so
+       it still moves and still shows, on a pale ground. */
+    "  float fy=u_fade>0.5?clamp((u_fade-gl_FragCoord.y)/u_fade,0.0,1.0):0.0;",
+    "  if(fy>0.0){",
+    /* Slow to begin, so the fade reaches up the hero without touching the
+       headline, and flat at the end so it arrives without a slope. */
+    "    float k=smoothstep(0.0,1.0,pow(fy,1.6));",
+    "    vec3 paper=vec3(0.9843,0.9804,0.9647);",
+    "    float lum=dot(col,vec3(0.2126,0.7152,0.0722));",
+    "    vec3 smoke=paper-vec3(clamp(0.32-lum,0.0,0.32))*0.46;",
+    "    col=mix(col,smoke,k);",
+    /* Approaching paper, but stopping short of it: the element below finishes
+       the last stretch in CSS so the two sides of the join come from the same
+       rendering path. */
+    "    col=mix(col,paper,smoothstep(0.55,1.0,fy)*0.88);",
+    "  }",
+
     "  gl_FragColor=vec4(col,1.0);}"
   ].join("\n");
 
-  var prog = null, uRes = null, uTime = null, uMouse = null;
+  var prog = null, uRes = null, uTime = null, uMouse = null, uFade = null;
+
+  /* Set from scroll by the fade handler, in CSS pixels; converted to device
+     pixels here, because that is what gl_FragCoord counts in. */
+  window.pdcmHeroFade = 0;
 
   function compile(type, src) {
     var sh = gl.createShader(type);
@@ -4670,6 +4706,7 @@ footer .foot-top { padding-bottom: 22px; }
     uRes = gl.getUniformLocation(prog, "u_res");
     uTime = gl.getUniformLocation(prog, "u_time");
     uMouse = gl.getUniformLocation(prog, "u_mouse");
+    uFade = gl.getUniformLocation(prog, "u_fade");
     return true;
   }
 
@@ -4695,6 +4732,8 @@ footer .foot-top { padding-bottom: 22px; }
     gl.uniform2f(uRes, canvas.width, canvas.height);
     gl.uniform1f(uTime, seconds);
     gl.uniform2f(uMouse, mouse.x, mouse.y);
+    var scale = canvas.height / (canvas.clientHeight || canvas.height);
+    gl.uniform1f(uFade, (window.pdcmHeroFade || 0) * scale);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 

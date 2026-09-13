@@ -230,13 +230,18 @@
   }
 
   @keyframes heroAmbientDrift {
+    /* No filter here. A filter on the hero applies to everything inside it --
+       the canvas, the fade, all of it -- so brightness(1.03) meant nothing in
+       the hero could match a colour outside it, and because it animated, the
+       mismatch drifted between one and four levels over its 28 seconds. That
+       is the line that kept coming back at the foot of the hero, and why it
+       measured differently every time. The hero's own background sits behind
+       the canvas and is not visible, so the filter bought nothing. */
     0% {
       background-position: 0% 0%, 100% 0%, center;
-      filter: saturate(1) brightness(1);
     }
     100% {
       background-position: 78% 64%, 20% 76%, center;
-      filter: saturate(1.05) brightness(1.03);
     }
   }
 
@@ -2789,26 +2794,17 @@ footer .foot-top { padding-bottom: 22px; }
     animation: none !important;
     filter: none !important;
     background:
-      linear-gradient(180deg,
-        transparent 0%,
-        transparent calc(100% - var(--hero-fade, 0px)),
-        rgba(251, 250, 246, 0.010) calc(100% - var(--hero-fade, 0px) * 0.84),
-        rgba(251, 250, 246, 0.040) calc(100% - var(--hero-fade, 0px) * 0.70),
-        rgba(251, 250, 246, 0.095) calc(100% - var(--hero-fade, 0px) * 0.58),
-        rgba(251, 250, 246, 0.175) calc(100% - var(--hero-fade, 0px) * 0.48),
-        rgba(251, 250, 246, 0.275) calc(100% - var(--hero-fade, 0px) * 0.40),
-        rgba(251, 250, 246, 0.390) calc(100% - var(--hero-fade, 0px) * 0.33),
-        rgba(251, 250, 246, 0.510) calc(100% - var(--hero-fade, 0px) * 0.27),
-        rgba(251, 250, 246, 0.625) calc(100% - var(--hero-fade, 0px) * 0.22),
-        rgba(251, 250, 246, 0.725) calc(100% - var(--hero-fade, 0px) * 0.18),
-        rgba(251, 250, 246, 0.800) calc(100% - var(--hero-fade, 0px) * 0.15),
-        rgba(251, 250, 246, 0.870) calc(100% - var(--hero-fade, 0px) * 0.12),
-        rgba(251, 250, 246, 0.930) calc(100% - var(--hero-fade, 0px) * 0.10),
-        rgba(251, 250, 246, 0.980) calc(100% - var(--hero-fade, 0px) * 0.06),
-        rgba(251, 250, 246, 0.9955) calc(100% - var(--hero-fade, 0px) * 0.03),
-        rgba(251, 250, 246, 1) 100%),
       linear-gradient(90deg, rgba(5, 11, 22, 0.570) 0%, rgba(5, 11, 22, 0.368) 34%, rgba(5, 11, 22, 0.055) 62%, transparent 100%),
       linear-gradient(180deg, rgba(5, 11, 22, 0.423) 0%, rgba(5, 11, 22, 0.092) 26%, rgba(5, 11, 22, 0.313) 66%, rgba(5, 11, 22, 0.810) 100%) !important;
+    /* The vignette is lifted away across the fade. Left in place it would
+       darken the pale ground the shader is resolving to, and the two would
+       fight over the same pixels. */
+    -webkit-mask-image: linear-gradient(180deg, #000 0%,
+      #000 calc(100% - var(--hero-fade, 0px)),
+      transparent calc(100% - var(--hero-fade, 0px) * 0.45)) !important;
+    mask-image: linear-gradient(180deg, #000 0%,
+      #000 calc(100% - var(--hero-fade, 0px)),
+      transparent calc(100% - var(--hero-fade, 0px) * 0.45)) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2889,6 +2885,23 @@ footer .foot-top { padding-bottom: 22px; }
   .hero { height: 124vh; min-height: 700px; padding-bottom: max(150px, 34vh); }
 }
 
+/* The final settle onto the page's own colour. Sized from the same scroll
+   value that drives the fade, so it grows and unwinds with it. */
+.hero-foot {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: calc(var(--hero-fade, 0px) * 0.26);
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(251, 250, 246, 0) 0%,
+    rgba(251, 250, 246, 0.18) 34%,
+    rgba(251, 250, 246, 0.52) 60%,
+    rgba(251, 250, 246, 0.82) 80%,
+    rgba(251, 250, 246, 0.96) 92%,
+    rgba(251, 250, 246, 1) 100%);
+}
+
 /* ── Footer pages ─────────────────────────────────
    Cross-document view transitions. Chrome and Safari animate between the
    main page and a footer page; Firefox ignores the at-rule and navigates
@@ -2938,6 +2951,14 @@ body.page-inner main > section#page,
 body.page-inner main > section#notfound { padding-top: 190px; }
 @media (max-width: 700px) { body.page-inner main > section#page,
 body.page-inner main > section#notfound { padding-top: 150px; } }
+
+/* Country, state and city read as one address, narrowing left to right, and
+   none of them is left absurdly wide. Country carries a little more room
+   because country names are the longest of the three. Below the width where
+   two columns already stack, this stacks with them. */
+.pdcm-apply-row-3 { grid-template-columns: 1.18fr 1fr 1fr; }
+@media (max-width: 900px) { .pdcm-apply-row-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 620px) { .pdcm-apply-row-3 { grid-template-columns: 1fr; } }
 
 /* A footer page keeps the measure the panel had, so its text is not stranded
    across a wide screen. */
