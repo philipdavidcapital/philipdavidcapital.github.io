@@ -3,6 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script id="pdcm-scroll-restoration">
+  /* A refresh part-way down the page otherwise restores that offset, and
+     the entry notice -- which freezes the page with overflow:hidden --
+     then sits over whatever section happened to be on screen. Turning
+     restoration off has to happen before the browser performs it, which
+     is why this is the first script in the document. */
+  try {
+    if (window.history && "scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+  } catch (e) {}
+</script>
 <title>Philip David Capital Management — A Private Family Office in Tulsa, Oklahoma</title>
 <meta name="description" content="Philip David Capital Management is a private family office headquartered in Tulsa, Oklahoma, managing family capital with quality, structure, and long-term foresight.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3425,11 +3437,28 @@ section{padding:90px 56px;}
       return;
     }
 
+    /* The notice must open over the landing view every time, so the page
+       is pinned to the top before it is frozen. Belt and braces: manual
+       scroll restoration covers the reload, and this covers a restore that
+       lands after our script runs, plus the back/forward cache. */
+    function pinToTop() {
+      try { window.scrollTo(0, 0); } catch (e) {}
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+      /* Lenis keeps its own scroll position and ignores scrollTo while it
+         is stopped, so it needs the forced reset to agree with the page. */
+      if (window.pdcmLenis) {
+        window.pdcmLenis.scrollTo(0, { immediate: true, force: true });
+      }
+    }
+
     function openEntryDisclaimer() {
+      pinToTop();
       modal.classList.add("active");
       modal.setAttribute("aria-hidden", "false");
       document.body.classList.add("modal-open", "entry-disclaimer-open");
       if (siteShell) siteShell.classList.add("site-blurred");
+      pinToTop();
     }
 
     function closeEntryDisclaimer() {
@@ -3439,7 +3468,18 @@ section{padding:90px 56px;}
     }
 
     clearEntryState();
+    pinToTop();
     window.setTimeout(openEntryDisclaimer, 80);
+
+    function repinWhileOpen() {
+      if (document.body.classList.contains("entry-disclaimer-open")) pinToTop();
+    }
+    window.addEventListener("load", repinWhileOpen);
+    window.addEventListener("pageshow", function (event) {
+      /* A back/forward-cache restore re-shows the page at its old offset
+         without re-running the scripts above. */
+      if (event.persisted) repinWhileOpen();
+    });
 
     document.querySelectorAll("[data-entry-disclaimer-close]").forEach(function (button) {
       button.addEventListener("click", function (event) {
@@ -3675,6 +3715,13 @@ section{padding:90px 56px;}
     if (c.contains("modal-open") || c.contains("entry-disclaimer-open")) lenis.stop();
     else lenis.start();
   }
+  /* The entry notice initialises before this script and needs to reset the
+     scroll position through Lenis once it exists. */
+  window.pdcmLenis = lenis;
+  if (document.body.classList.contains("entry-disclaimer-open")) {
+    lenis.scrollTo(0, { immediate: true, force: true });
+  }
+
   document.querySelectorAll(".disclaimer-modal, .modal, [role=\"dialog\"]").forEach(function (m) {
     m.setAttribute("data-lenis-prevent", "");
   });
