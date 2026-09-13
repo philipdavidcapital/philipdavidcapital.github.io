@@ -295,10 +295,21 @@
             <input type="text" id="pa-city" name="City" autocomplete="address-level2" required>
             <p class="pdcm-err" data-for="pa-city" hidden>Please enter a city.</p>
           </div>
-          <div class="pdcm-field">
+          <div class="pdcm-field" id="pa-state-field">
             <label for="pa-state">State / Region</label>
+            <!-- Replaced with a list of the country's own subdivisions once a
+                 country is chosen, and left as free text for countries that
+                 have none worth listing. Both carry the same name, so what
+                 reaches the firm reads the same either way. -->
             <input type="text" id="pa-state" name="State / Region" autocomplete="address-level1">
           </div>
+        </div>
+
+        <div class="pdcm-locate">
+          <button type="button" class="pdcm-locate-btn" id="pdcmLocate">Use my location</button>
+          <p class="pdcm-note" id="pdcmLocateNote">Optional. Fills in the country, state and city
+            for you. Your position is read by your browser, which will ask permission first, and is
+            used only to look up the place name.</p>
         </div>
 
         <div class="pdcm-field">

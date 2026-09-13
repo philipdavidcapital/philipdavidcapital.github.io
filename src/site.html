@@ -3429,10 +3429,21 @@ footer .foot-top { padding-bottom: 22px; }
             <input type="text" id="pa-city" name="City" autocomplete="address-level2" required>
             <p class="pdcm-err" data-for="pa-city" hidden>Please enter a city.</p>
           </div>
-          <div class="pdcm-field">
+          <div class="pdcm-field" id="pa-state-field">
             <label for="pa-state">State / Region</label>
+            <!-- Replaced with a list of the country's own subdivisions once a
+                 country is chosen, and left as free text for countries that
+                 have none worth listing. Both carry the same name, so what
+                 reaches the firm reads the same either way. -->
             <input type="text" id="pa-state" name="State / Region" autocomplete="address-level1">
           </div>
+        </div>
+
+        <div class="pdcm-locate">
+          <button type="button" class="pdcm-locate-btn" id="pdcmLocate">Use my location</button>
+          <p class="pdcm-note" id="pdcmLocateNote">Optional. Fills in the country, state and city
+            for you. Your position is read by your browser, which will ask permission first, and is
+            used only to look up the place name.</p>
         </div>
 
         <div class="pdcm-field">
@@ -4226,6 +4237,164 @@ footer .foot-top { padding-bottom: 22px; }
       /* Unreadable is not the same as unsafe, but it is not sendable either. */
       return "This file could not be read. Please try attaching it again.";
     });
+  }
+
+
+  /* ── Country-dependent state, and locating the applicant ──────────
+     The subdivisions of the countries an applicant is most likely to write
+     from. A country absent from this list keeps a free-text field rather
+     than being given a wrong or empty menu -- not every country has
+     subdivisions worth naming, and a menu that cannot express where someone
+     lives is worse than a box. */
+  var SUBDIVISIONS = {
+    "United States": ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
+      "Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana",
+      "Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota",
+      "Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico",
+      "New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania",
+      "Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia",
+      "Washington","West Virginia","Wisconsin","Wyoming","Puerto Rico"],
+    "Canada": ["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador",
+      "Northwest Territories","Nova Scotia","Nunavut","Ontario","Prince Edward Island","Quebec",
+      "Saskatchewan","Yukon"],
+    "United Kingdom": ["England","Scotland","Wales","Northern Ireland"],
+    "Australia": ["Australian Capital Territory","New South Wales","Northern Territory","Queensland",
+      "South Australia","Tasmania","Victoria","Western Australia"],
+    "India": ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Delhi","Goa",
+      "Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh",
+      "Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim",
+      "Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal"],
+    "Mexico": ["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas",
+      "Chihuahua","Ciudad de Mexico","Coahuila","Colima","Durango","Guanajuato","Guerrero","Hidalgo",
+      "Jalisco","Mexico","Michoacan","Morelos","Nayarit","Nuevo Leon","Oaxaca","Puebla","Queretaro",
+      "Quintana Roo","San Luis Potosi","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz",
+      "Yucatan","Zacatecas"],
+    "Brazil": ["Acre","Alagoas","Amapa","Amazonas","Bahia","Ceara","Distrito Federal","Espirito Santo",
+      "Goias","Maranhao","Mato Grosso","Mato Grosso do Sul","Minas Gerais","Para","Paraiba","Parana",
+      "Pernambuco","Piaui","Rio de Janeiro","Rio Grande do Norte","Rio Grande do Sul","Rondonia",
+      "Roraima","Santa Catarina","Sao Paulo","Sergipe","Tocantins"],
+    "Germany": ["Baden-Wurttemberg","Bayern","Berlin","Brandenburg","Bremen","Hamburg","Hessen",
+      "Mecklenburg-Vorpommern","Niedersachsen","Nordrhein-Westfalen","Rheinland-Pfalz","Saarland",
+      "Sachsen","Sachsen-Anhalt","Schleswig-Holstein","Thuringen"],
+    "Switzerland": ["Aargau","Appenzell Ausserrhoden","Appenzell Innerrhoden","Basel-Landschaft",
+      "Basel-Stadt","Bern","Fribourg","Geneva","Glarus","Graubunden","Jura","Lucerne","Neuchatel",
+      "Nidwalden","Obwalden","Schaffhausen","Schwyz","Solothurn","St. Gallen","Thurgau","Ticino",
+      "Uri","Valais","Vaud","Zug","Zurich"]
+  };
+
+  var countryEl = document.getElementById("pa-country");
+  var stateField = document.getElementById("pa-state-field");
+
+  /* The label changes with the country because "State" is wrong in Canada and
+     "Province" is wrong in the United States. */
+  var SUBDIVISION_LABEL = {
+    "United States": "State", "Canada": "Province or Territory",
+    "United Kingdom": "Nation", "Australia": "State or Territory",
+    "India": "State", "Mexico": "State", "Brazil": "State",
+    "Germany": "Land", "Switzerland": "Canton"
+  };
+
+  function buildStateField(country, keep) {
+    if (!stateField) return;
+    var list = SUBDIVISIONS[country];
+    var label = SUBDIVISION_LABEL[country] || "State / Region";
+    var current = keep || (document.getElementById("pa-state") || {}).value || "";
+
+    var html = '<label for="pa-state">' + label + "</label>";
+    if (list) {
+      html += '<select id="pa-state" name="State / Region" autocomplete="address-level1">';
+      html += '<option value="">Select…</option>';
+      for (var i = 0; i < list.length; i++) {
+        var sel = list[i] === current ? " selected" : "";
+        html += "<option" + sel + ">" + list[i] + "</option>";
+      }
+      html += "</select>";
+    } else {
+      html += '<input type="text" id="pa-state" name="State / Region" autocomplete="address-level1"'
+            + ' value="' + current.replace(/"/g, "&quot;") + '">';
+    }
+    stateField.innerHTML = html;
+  }
+
+  if (countryEl) {
+    countryEl.addEventListener("change", function () { buildStateField(countryEl.value); });
+    buildStateField(countryEl.value);
+  }
+
+  /* Filling the address from the browser's own position. The coordinates are
+     read only when the button is pressed, and the browser asks its own
+     permission first. They are sent to a public reverse-geocoding service to
+     be turned into a place name and are not stored here or sent to the firm;
+     what the firm receives is whatever ends up in the fields, the same as if
+     they had been typed. Everything about this is optional: a refusal, a
+     failure or a service that cannot place the coordinates simply leaves the
+     fields to be filled by hand. */
+  var locateBtn = document.getElementById("pdcmLocate");
+  var locateNote = document.getElementById("pdcmLocateNote");
+
+  function locateSay(msg) { if (locateNote) locateNote.textContent = msg; }
+
+  if (locateBtn) {
+    if (!navigator.geolocation) {
+      locateBtn.hidden = true;
+    } else {
+      locateBtn.addEventListener("click", function () {
+        locateBtn.disabled = true;
+        locateSay("Asking your browser for your location…");
+
+        /* Neither callback is guaranteed to fire. A browser that shows a
+           permission prompt and has it dismissed rather than answered can
+           leave the request outstanding forever -- the timeout in the
+           options below covers acquiring a position, not waiting for the
+           person to decide. Measured: still waiting after thirteen seconds
+           with the button disabled and a message saying it was still
+           asking. So the recovery is ours to guarantee. */
+        var settled = false;
+        function finish(msg) {
+          if (settled) return;
+          settled = true;
+          locateSay(msg);
+          locateBtn.disabled = false;
+        }
+        window.setTimeout(function () {
+          finish("No location was shared. Please fill the fields in.");
+        }, 12000);
+
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          if (settled) return;
+          var q = "?latitude=" + pos.coords.latitude.toFixed(4)
+                + "&longitude=" + pos.coords.longitude.toFixed(4) + "&localityLanguage=en";
+          fetch("https://api.bigdatacloud.net/data/reverse-geocode-client" + q)
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(r.status)); })
+            .then(function (j) {
+              var country = j.countryName || "";
+              var region = j.principalSubdivision || "";
+              var city = j.city || j.locality || "";
+
+              if (country && countryEl) {
+                for (var i = 0; i < countryEl.options.length; i++) {
+                  if (countryEl.options[i].text === country) { countryEl.selectedIndex = i; break; }
+                }
+                buildStateField(countryEl.value, region);
+              }
+              var cityEl = document.getElementById("pa-city");
+              if (city && cityEl) cityEl.value = city;
+
+              var stateEl = document.getElementById("pa-state");
+              if (region && stateEl && stateEl.tagName === "INPUT") stateEl.value = region;
+
+              finish(country || city
+                ? "Filled in from your location. Please correct anything that is wrong."
+                : "Your location could not be matched to a place. Please fill the fields in.");
+            })
+            .catch(function () {
+              finish("The lookup could not be reached. Please fill the fields in.");
+            });
+        }, function () {
+          finish("No location was shared. Please fill the fields in.");
+        }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+      });
+    }
   }
 
   function fieldOf(el) { return el.closest(".pdcm-field"); }
