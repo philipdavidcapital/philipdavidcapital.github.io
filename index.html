@@ -2492,6 +2492,58 @@ section{padding:90px 56px;}
 .statement::before { font-family: 'Cormorant SC', serif; }
 
 </style>
+<style id="pdcm-contact-parallax-css">
+/* Depth, not invented activity. The photograph is real documentary imagery
+   of downtown Tulsa, so nothing is added to it -- it is simply given a
+   plane of its own that travels slower than the page, which is what makes
+   a still read as a place rather than as wallpaper.
+
+   The layer is inert until JS adds .has-scene, so any failure leaves the
+   original background exactly as it was. */
+#contact { position: relative; overflow: hidden; }
+#contact .contact-scene { display: none; }
+
+#contact.has-scene {
+  background-color: #060e1c;
+  background-image: none;
+}
+#contact.has-scene .contact-scene {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Oversized so the parallax travel never exposes an edge: 128% tall,
+   offset -14%, against a maximum shift of 8%. */
+#contact.has-scene .contact-scene-img {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -14%;
+  height: 128%;
+  background: url("tulsa%20skyline.jpg") center center / cover no-repeat;
+  will-change: transform;
+}
+#contact.has-scene .contact-scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* The scrim the section carried before, kept identical so the copy sits
+     on exactly the same contrast it was designed against. */
+  background: linear-gradient(180deg, rgba(6, 14, 28, 0.70) 0%, rgba(6, 14, 28, 0.76) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #contact.has-scene .contact-scene-img {
+    transform: none !important;
+    top: 0;
+    height: 100%;
+  }
+}
+</style>
+
 <style id="pdcm-hero-field-css">
   /* ── Landing field ─────────────────────────────────────────────────
      A generative light field, drawn in the browser from mathematics.
@@ -2705,6 +2757,7 @@ section{padding:90px 56px;}
      V. CONTACT
      ═══════════════════════════════════════════════════ -->
 <section id="contact">
+  <div class="contact-scene" aria-hidden="true"><div class="contact-scene-img"></div></div>
   <div class="inner">
     <div class="head-grid reveal">
       <div>
@@ -3501,6 +3554,55 @@ section{padding:90px 56px;}
 
 
 
+
+<script id="pdcm-contact-parallax-js">
+(function () {
+  "use strict";
+
+  var section = document.getElementById("contact");
+  if (!section) return;
+  var img = section.querySelector(".contact-scene-img");
+  if (!img) return;
+
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* Only now does the layer become visible, so a browser that never gets
+     here keeps the section's original background. */
+  section.classList.add("has-scene");
+  if (reduce) return;
+
+  var ticking = false;
+
+  function update() {
+    ticking = false;
+    var r = section.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (r.bottom < 0 || r.top > vh) return;
+
+    /* Contact is the last section, so it never travels all the way across
+       the viewport -- the document runs out of scroll first. Mapping against
+       the section's own entrance instead (0 as its top edge reaches the
+       bottom of the screen, 1 as that edge reaches the top) keeps the whole
+       drift inside the scroll that actually happens.
+
+       11% down to -3%: a 14% swing against the 14% of overhang the layer
+       carries on each side, so an edge is never exposed. */
+    var p = (vh - r.top) / vh;
+    if (p > 1) p = 1; else if (p < 0) p = 0;
+    img.style.transform = "translate3d(0," + (11 - p * 14).toFixed(3) + "%,0)";
+  }
+
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(update);
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  update();
+})();
+</script>
 
 <script id="pdcm-hero-field-js">
 (function () {
