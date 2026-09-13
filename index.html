@@ -2507,16 +2507,37 @@ section{padding:90px 56px;}
    padding that was supposed to set it. With that margin gone, both gaps are
    simply the footer's top padding and the rule's padding above it. */
 .foot-brand .foot-lockup { margin-bottom: 0; }
-/* The earlier rule sets this !important, so matching it is the only way to
-   move the top padding. */
-footer { padding-top: 32px !important; }
-footer .foot-top { padding-bottom: 32px; }
 
-/* The narrow layout sets its own, smaller top padding; keep that intention
-   and match the gap below to it rather than letting the desktop value win. */
+/* The header and the footer now share one vertical rhythm: the space above
+   and below each lockup is 0.42 of that lockup's height. The guidelines'
+   clear-space diagram puts the minimum at roughly 0.38 of the height, so
+   this is tighter than either was while staying clear of that floor.
+
+   Before, the two disagreed -- the header sat at 0.46 of its lockup and the
+   footer at 0.62 -- which is why the footer read as the airier of the two
+   even though its lockup is the smaller one.
+
+   An earlier rule sets the footer's padding !important, so matching that is
+   the only way to move it. */
+nav { padding-top: 24px; padding-bottom: 24px; }      /* 57px lockup -> 0.42 */
+footer { padding-top: 22px !important; }              /* 52px lockup -> 0.42 */
+footer .foot-top { padding-bottom: 22px; }
+
+/* The nav links carried too little optical weight against a 309px lockup:
+   13px beside a mark whose own secondary line sets at about 11px. Lato, which
+   the guidelines name as the secondary typeface for functional text, and the
+   site's existing tracking, which is already far above the 50pt floor they
+   specify. Held to wide viewports so the narrower layouts keep the sizes they
+   were designed with. */
+@media (min-width: 1200px) {
+  .nav-links a { font-size: 14.5px; }
+}
+
+/* 18px here would have been 0.35 of the lockup, under the guideline floor.
+   21px is the tightest that still clears it on a 52px lockup. */
 @media (max-width: 700px) {
-  footer { padding-top: 24px !important; }
-  footer .foot-top { padding-bottom: 24px; }
+  footer { padding-top: 21px !important; }
+  footer .foot-top { padding-bottom: 21px; }
 }
 </style>
 
