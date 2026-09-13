@@ -3409,8 +3409,8 @@ footer .foot-top { padding-bottom: 22px; }
         </div>
 
         <div class="pdcm-field">
-          <label for="pa-letter">Or enter your letter manually</label>
-          <textarea id="pa-letter" name="Letter" rows="6" placeholder="Optional."></textarea>
+          <label for="pa-comments">Additional Comments</label>
+          <textarea id="pa-comments" name="Additional Comments" rows="6" placeholder="Optional. Anything further you would like the firm to know."></textarea>
         </div>
 
         <p class="pdcm-consent">Information submitted here is used solely to consider your candidacy and is not shared outside the firm.</p>
@@ -4237,7 +4237,12 @@ footer .foot-top { padding-bottom: 22px; }
 
     "void main(){",
     "  vec2 p=(gl_FragCoord.xy-0.5*u_res)/u_res.y;",
-    "  float t=u_time*0.26;",
+    /* Time rate. This has been tuned from both directions: at 0.055 the light
+       swept its full arc in 71 seconds and read as a still image; at 0.26 it
+       swept in 15 seconds and read as animation rather than ambience. 0.12 is
+       the midpoint -- a 33-second sweep, about 5% of frame width per second at
+       its fastest. Slowing this slows the whole field, warp included. */
+    "  float t=u_time*0.12;",
     /* Coordinates are normalised by height, so the visible horizontal extent
        collapses on a tall narrow screen: +/-0.79 on a desktop hero but only
        +/-0.23 on a phone. Light positions fixed in absolute units therefore
