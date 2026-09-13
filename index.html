@@ -2500,6 +2500,26 @@ section{padding:90px 56px;}
 .statement::before { font-family: 'Cormorant SC', serif; }
 
 </style>
+<style id="pdcm-footer-spacing-css">
+/* The lockup sat 38px below the footer's top edge but 65px above the rule.
+   The extra came from a 16px margin under the lockup, left over for a
+   paragraph this footer does not carry, so the lower gap never matched the
+   padding that was supposed to set it. With that margin gone, both gaps are
+   simply the footer's top padding and the rule's padding above it. */
+.foot-brand .foot-lockup { margin-bottom: 0; }
+/* The earlier rule sets this !important, so matching it is the only way to
+   move the top padding. */
+footer { padding-top: 52px !important; }
+footer .foot-top { padding-bottom: 52px; }
+
+/* The narrow layout sets its own, smaller top padding; keep that intention
+   and match the gap below to it rather than letting the desktop value win. */
+@media (max-width: 700px) {
+  footer { padding-top: 34px !important; }
+  footer .foot-top { padding-bottom: 34px; }
+}
+</style>
+
 <style id="pdcm-contact-parallax-css">
 /* Depth, not invented activity. The photograph is real documentary imagery
    of downtown Tulsa, so nothing is added to it -- it is simply given a
@@ -2527,10 +2547,14 @@ section{padding:90px 56px;}
    offset -14%, against a maximum shift of 8%. */
 #contact.has-scene .contact-scene-img {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: -14%;
-  height: 128%;
+  /* Full section height, so the whole photograph is visible top to bottom.
+     The drift is horizontal instead: the picture is 4:1 inside a 2.6:1 box,
+     so there is spare width to travel through and no spare height. The 6%
+     of overhang on each side covers the travel. */
+  left: -6%;
+  right: -6%;
+  top: 0;
+  height: 100%;
   background: url("tulsa%20skyline.jpg") center center / cover no-repeat;
   background-image: image-set(url("tulsa-skyline-hires.webp") type("image/webp"),
                               url("tulsa%20skyline.jpg") type("image/jpeg"));
@@ -2548,8 +2572,6 @@ section{padding:90px 56px;}
 @media (prefers-reduced-motion: reduce) {
   #contact.has-scene .contact-scene-img {
     transform: none !important;
-    top: 0;
-    height: 100%;
   }
 }
 </style>
@@ -3595,11 +3617,11 @@ section{padding:90px 56px;}
        bottom of the screen, 1 as that edge reaches the top) keeps the whole
        drift inside the scroll that actually happens.
 
-       11% down to -3%: a 14% swing against the 14% of overhang the layer
-       carries on each side, so an edge is never exposed. */
+       4% to -4% of the layer's width, against the 6% of overhang it carries
+       on each side, so an edge is never exposed. */
     var p = (vh - r.top) / vh;
     if (p > 1) p = 1; else if (p < 0) p = 0;
-    img.style.transform = "translate3d(0," + (11 - p * 14).toFixed(3) + "%,0)";
+    img.style.transform = "translate3d(" + (4 - p * 8).toFixed(3) + "%,0,0)";
   }
 
   function onScroll() {
