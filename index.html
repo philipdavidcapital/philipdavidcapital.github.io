@@ -29,6 +29,26 @@
     scrollbar-gutter: stable;
   }
 
+  /* Lenis 1.3.26's own stylesheet, verbatim. */
+  html.lenis,
+  html.lenis body { height: auto; }
+  .lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+  .lenis [data-lenis-prevent],
+  .lenis [data-lenis-prevent-wheel],
+  .lenis [data-lenis-prevent-touch],
+  .lenis [data-lenis-prevent-vertical],
+  .lenis [data-lenis-prevent-horizontal] { overscroll-behavior: contain; }
+  .lenis.lenis-smooth iframe { pointer-events: none; }
+  .lenis.lenis-autoToggle {
+    transition-property: overflow;
+    transition-duration: 1ms;
+    transition-behavior: allow-discrete;
+  }
+
+  /* Native CSS smooth scrolling would fight Lenis for the same gesture.
+     Only applies once Lenis has actually initialised and added .lenis. */
+  html.lenis { scroll-behavior: auto !important; }
+
   body {
     font-family: 'Lato', sans-serif;
     font-weight: 300;
@@ -3498,9 +3518,9 @@ section{padding:90px 56px;}
        gradient no matter how it moves; two crossing each other is what
        makes the field legibly alive. Both sit right of centre, in the open
        half of the hero, so the headline never needs a scrim over it. */
-    "  vec2 lc=vec2(0.44+0.09*sin(t*1.6),0.11+0.06*cos(t*1.25))+u_mouse*vec2(0.34,0.26);",
+    "  vec2 lc=vec2(0.44+0.09*sin(t*1.6),0.11+0.06*cos(t*1.25))+u_mouse*vec2(0.11,0.08);",
     "  float glow=exp(-length(p-lc)*2.05);",
-    "  vec2 lc2=vec2(0.24+0.13*sin(t*0.9+2.1),-0.20+0.10*cos(t*1.05+0.6))+u_mouse*vec2(0.20,0.15);",
+    "  vec2 lc2=vec2(0.24+0.13*sin(t*0.9+2.1),-0.20+0.10*cos(t*1.05+0.6))+u_mouse*vec2(0.06,0.045);",
     "  float glow2=exp(-length(p-lc2)*2.60);",
     "  glow=glow+glow2*0.55;",
 
@@ -3577,8 +3597,8 @@ section{padding:90px 56px;}
   }
 
   function draw(seconds) {
-    mouse.x += (mouse.tx - mouse.x) * 0.04;
-    mouse.y += (mouse.ty - mouse.y) * 0.04;
+    mouse.x += (mouse.tx - mouse.x) * 0.010;
+    mouse.y += (mouse.ty - mouse.y) * 0.010;
     gl.uniform2f(uRes, canvas.width, canvas.height);
     gl.uniform1f(uTime, seconds);
     gl.uniform2f(uMouse, mouse.x, mouse.y);
@@ -3623,6 +3643,64 @@ section{padding:90px 56px;}
       if (entries[0].isIntersecting) play(); else pause();
     }, { threshold: 0 }).observe(canvas);
   }
+})();
+</script>
+
+<!-- Vendored locally rather than loaded from a CDN: the site makes no
+     third-party runtime request. -->
+<script src="assets/js/vendor/lenis.min.js"></script>
+<script id="pdcm-smooth-scroll-js">
+(function () {
+  "use strict";
+
+  if (!window.Lenis) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  /* Duration and easing carried over unchanged from the earlier build, so
+     the scroll feel is the one already approved. */
+  var lenis = new Lenis({
+    duration: 1.15,
+    easing: function (t) { return Math.min(1, 1.001 - Math.pow(2, -10 * t)); },
+    smoothWheel: true
+  });
+
+  function raf(time) { lenis.raf(time); window.requestAnimationFrame(raf); }
+  window.requestAnimationFrame(raf);
+
+  /* The entry notice and all four legal modals already announce themselves
+     through a body class. Watching that class means none of their existing
+     handlers has to be touched, and any modal added later is covered too. */
+  function syncLock() {
+    var c = document.body.classList;
+    if (c.contains("modal-open") || c.contains("entry-disclaimer-open")) lenis.stop();
+    else lenis.start();
+  }
+  document.querySelectorAll(".disclaimer-modal, .modal, [role=\"dialog\"]").forEach(function (m) {
+    m.setAttribute("data-lenis-prevent", "");
+  });
+
+  new MutationObserver(syncLock).observe(document.body, {
+    attributes: true, attributeFilter: ["class"]
+  });
+  syncLock();
+
+  /* The page's nav and in-page links call window.scrollTo directly, each
+     with its own header offset. Routing that one call through Lenis lets
+     those handlers keep their offsets and inherit the same easing, instead
+     of a native jump cutting across a Lenis glide. */
+  var native = window.scrollTo.bind(window);
+  window.scrollTo = function (a) {
+    /* Only smooth requests are rerouted. Everything else is forwarded with
+       its original arity: Lenis applies its own animated position through
+       window.scrollTo({top, behavior:"instant"}), and passing a second
+       undefined argument there selects the (x, y) overload instead, which
+       coerces that object to NaN and scrolls nowhere. */
+    if (a && typeof a === "object" && a.behavior === "smooth" && typeof a.top === "number") {
+      lenis.scrollTo(a.top, { duration: 1.15 });
+      return;
+    }
+    return native.apply(null, arguments);
+  };
 })();
 </script>
 
