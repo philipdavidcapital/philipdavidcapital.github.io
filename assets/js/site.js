@@ -539,20 +539,18 @@
     }
 
     var SEEN = "pdcm-entry-notice-acknowledged";
-
-    /* A footer page is a page of this site reached from within it; the main
-       page is where an arrival happens. Only the former defers to the
-       session. */
-    var isFooterPage = document.body.classList.contains("page-inner");
     var seen = false;
-    if (isFooterPage) {
-      try { seen = window.sessionStorage.getItem(SEEN) === "1"; } catch (e) {}
-    }
+    try { seen = window.sessionStorage.getItem(SEEN) === "1"; } catch (e) {}
 
     if (!seen) {
       clearEntryState();
       pinToTop();
       window.setTimeout(openEntryDisclaimer, 80);
+    } else {
+      clearEntryState();
+      /* Still open on the landing view. A hash means the reader asked for a
+         particular section, so that is left alone. */
+      if (!window.location.hash) pinToTop();
     }
 
     function repinWhileOpen() {
@@ -1266,25 +1264,28 @@
 })();
 
 
-/* The hero's lower edge dissolves into the section below it rather than
-   ending on a hard line. The amount is read from scroll position on every
-   frame rather than played as a one-way animation, so scrolling back up
-   unwinds it exactly as scrolling down made it -- the same gesture in
-   reverse, not a second animation that happens to run backwards.
+/* The hero's lower edge fades into the section below it rather than ending on
+   a line. What scroll changes is the length of that fade; the stylesheet
+   keeps the bottom-most row at the paper colour at every moment, so the two
+   sides always meet.
 
-   It is written to a custom property and the blending is left to CSS, which
-   keeps the work on the compositor instead of in this handler. */
+   The measure is how far the hero's lower edge has risen off the bottom of
+   the window, not raw scroll distance -- the edge sits exactly on the bottom
+   of the window at rest, so it is the moment it lifts that matters, and the
+   same measure run backwards unwinds the fade as you scroll back up. */
 (function () {
   "use strict";
 
   var hero = document.querySelector(".hero");
   if (!hero) return;
 
+  var REACH = 0.34;   /* the fade's full length, as a fraction of the hero */
+  var OVER = 150;     /* how far the edge rises before the fade is full */
+
   var reduce = false;
   try {
     reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch (e) {}
-  if (reduce) return;   /* the stylesheet already holds it resolved */
 
   var ticking = false;
   var last = -1;
@@ -1292,16 +1293,13 @@
   function frame() {
     ticking = false;
     var h = hero.offsetHeight || window.innerHeight;
-    /* Fully resolved by the time the hero is two thirds gone, so the join is
-       already made when the section below reaches the eye. */
-    var t = (window.scrollY || window.pageYOffset || 0) / (h * 0.66);
+    var risen = window.innerHeight - hero.getBoundingClientRect().bottom;
+    var t = risen / OVER;
     t = t < 0 ? 0 : t > 1 ? 1 : t;
-    /* Ease so the edge softens early and settles, rather than tracking the
-       wheel one to one. */
-    var v = t * t * (3 - 2 * t);
+    var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
     if (Math.abs(v - last) < 0.004) return;
     last = v;
-    hero.style.setProperty("--hero-dissolve", v.toFixed(3));
+    hero.style.setProperty("--hero-fade", (v * REACH * h).toFixed(1) + "px");
   }
 
   function onScroll() {
