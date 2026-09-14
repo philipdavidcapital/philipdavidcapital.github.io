@@ -416,6 +416,10 @@ var index_default = {
       env.TURNSTILE_SECRET,
       request.headers.get("cf-connecting-ip")
     );
+    console.log("guards", JSON.stringify({
+      turnstile: human.configured ? human.reason : "not configured",
+      rateLimit: rate.checked ? rate.reason : rate.reason
+    }));
     if (!human.ok) {
       return json({ error: "Please complete the verification and submit again." }, 400, origin);
     }
