@@ -5,7 +5,8 @@
   "scripts": {
     "test": "node test/inspect.test.mjs && node test/email.test.mjs && node test/endpoint.test.mjs",
     "check": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "bundle": "node bundle.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.131.1"

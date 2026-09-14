@@ -30,37 +30,63 @@ Three reasons it exists:
 
 ## Deploying
 
-You need a Cloudflare account and a Resend account. VirusTotal is optional.
+You need a Cloudflare account and a Resend account. Both are free and neither
+asks for a card. VirusTotal is optional.
+
+### From a browser, with no terminal
+
+`dist/pdcm-careers.js` is the whole endpoint built into one file with no
+imports, so it can be pasted straight into Cloudflare's editor.
+
+1. **Resend → API Keys → Create API Key.** Copy it once; it is not shown
+   again. Paste it only into the Cloudflare field in step 5 — not into an
+   email, a document, or a chat.
+2. **Resend → Domains.** Add `philipdavidcapital.com` and enter the DNS
+   records it gives you at your registrar. Until that verifies, set
+   `MAIL_FROM` in step 5 to `Careers <onboarding@resend.dev>`, which works
+   immediately.
+3. **Cloudflare → Compute (Workers) → Create → Start with Hello World →
+   Deploy.** Name it `pdcm-careers`. The starter code is a placeholder.
+4. **Edit code.** Select everything in the editor, delete it, paste the whole
+   of `dist/pdcm-careers.js`, and Deploy.
+5. **Settings → Variables and Secrets.** Add:
+
+   | Name | Type | Value |
+   |---|---|---|
+   | `RESEND_API_KEY` | Secret | the key from step 1 |
+   | `MAIL_TO` | Text | `jgarrison@philipdavidcapital.com` |
+   | `MAIL_FROM` | Text | `Careers <careers@philipdavidcapital.com>` |
+   | `ALLOWED_ORIGINS` | Text | `https://philipdavidcapital.com,https://www.philipdavidcapital.com` |
+   | `VIRUSTOTAL_API_KEY` | Secret | optional |
+
+   Secret hides the value after saving and is the only correct type for a key.
+   Deploy again so the variables take effect.
+6. **Settings → Domains & Routes** shows the address, ending `.workers.dev`.
+   That is what the form posts to.
+
+### From a terminal
 
 ```sh
-npm install -g wrangler        # once
 cd worker
-wrangler login
+npx wrangler login
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put VIRUSTOTAL_API_KEY   # optional
+npx wrangler deploy
 ```
 
-**Set the secrets.** These are stored encrypted by Cloudflare, never in this
-repository:
+`wrangler.toml` holds the three plain variables, so only the secrets are
+entered by hand. Wrangler prints the `.workers.dev` URL when it finishes.
 
-```sh
-wrangler secret put RESEND_API_KEY
-wrangler secret put VIRUSTOTAL_API_KEY   # optional
-```
+### Either way
 
-**Check the addresses** in `wrangler.toml`. `MAIL_FROM` must be on a domain
-verified in Resend — verifying `philipdavidcapital.com` means adding the DNS
-records Resend gives you. Until that is done, send from `onboarding@resend.dev`,
-which works immediately but looks like what it is.
+Send the URL over and the form gets pointed at it; that is a one-line change
+on the site. Optionally put the endpoint on your own domain instead, which
+avoids a cross-origin request entirely — Workers → `pdcm-careers` → Settings
+→ Domains & Routes → add route `philipdavidcapital.com/api/apply`.
 
-```sh
-wrangler deploy
-```
-
-Wrangler prints a URL ending `.workers.dev`. Send it to me and I will point
-the form at it; that is a one-line change on the site.
-
-Optionally put it on your own domain instead, which avoids a cross-origin
-request entirely — in the Cloudflare dashboard, Workers → your worker →
-Triggers → add route `philipdavidcapital.com/api/apply`.
+If a key is ever pasted somewhere it should not be, delete it in Resend and
+create another. A key that has been exposed is not made safe by being deleted
+from the place it was pasted.
 
 ## Testing
 
@@ -68,6 +94,7 @@ Triggers → add route `philipdavidcapital.com/api/apply`.
 npm install
 npm test     # 39 checks across three suites
 npm run check   # validates wrangler.toml and bundles, without deploying
+npm run bundle  # rebuilds dist/pdcm-careers.js for the dashboard editor
 ```
 
 - `test/inspect.test.mjs` — 13 files, hostile and ordinary. Two of them are
