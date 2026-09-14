@@ -262,7 +262,7 @@ function buildEmail(fields, files, scans) {
        </td></tr>` : "";
   const attachmentLines = files.map((f) => {
     const scan = scans[f.field] || {};
-    const note = scan.checked ? scan.malicious ? "FLAGGED" : "checked, clean" : "not checked";
+    const note = scan.checked ? scan.malicious ? "FLAGGED" : "inspected \xB7 not known malware" : `inspected \xB7 not checked against known malware: ${scan.reason || "lookup did not run"}`;
     return `<div style="font:300 13px/1.9 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">
         ${esc(f.field)}: ${esc(f.filename)}
         <span style="color:#9a9a9a;">(${(f.bytes.length / 1024).toFixed(0)} KB &middot; ${esc(note)})</span>

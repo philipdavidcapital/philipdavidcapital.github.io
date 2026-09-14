@@ -26,7 +26,11 @@ const checks = [
   ['location is joined', html.includes('Tulsa, Oklahoma, United States')],
   ['comments kept with line breaks', html.includes('white-space:pre-wrap')],
   ['both attachments listed', html.includes('Ada Lovelace CV.pdf') && html.includes('cover.pdf')],
-  ['scan result shown', html.includes('checked, clean')],
+  ['scan result shown', html.includes('not known malware')],
+  ['inspection is stated, not left to inference', html.includes('inspected')],
+  ['a lookup that did not run says why', buildEmail(fields, files,
+    { Resume: { checked: false, reason: 'no API key configured' } })
+    .html.includes('no API key configured')],
   ['plain-text alternative', text.includes('Ada Lovelace') && text.includes('918 555 0134')],
 ];
 // Injection: a name containing markup must not become markup.

@@ -47,11 +47,18 @@ export function buildEmail(fields, files, scans) {
        </td></tr>`
     : '';
 
+  /* Every attachment here has been inspected -- a file that failed is refused
+     and no mail is sent -- so the note says so plainly rather than leaving the
+     reader to infer it. What varies is the second check: whether the file's
+     hash was looked up against a database of known malware, which needs an API
+     key the firm may not have configured. An earlier version reported that
+     lookup alone as "not checked", which read as though nothing had been
+     examined at all. */
   const attachmentLines = files.map((f) => {
     const scan = scans[f.field] || {};
     const note = scan.checked
-      ? (scan.malicious ? 'FLAGGED' : 'checked, clean')
-      : 'not checked';
+      ? (scan.malicious ? 'FLAGGED' : 'inspected \u00b7 not known malware')
+      : `inspected \u00b7 not checked against known malware: ${scan.reason || 'lookup did not run'}`;
     return `<div style="font:300 13px/1.9 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">
         ${esc(f.field)}: ${esc(f.filename)}
         <span style="color:#9a9a9a;">(${(f.bytes.length / 1024).toFixed(0)} KB &middot; ${esc(note)})</span>
