@@ -1,0 +1,15 @@
+# Not a Jekyll site -- the pages are built by src/build_pages.py and committed
+# as plain HTML. This file exists only to keep parts of the repository off the
+# web server.
+#
+# worker/ holds the careers endpoint, which runs on Cloudflare, not here. Its
+# test fixtures are deliberately malformed documents -- an executable wearing a
+# .pdf extension, a macro-carrying .docx -- and serving those from the firm's
+# own domain would invite a scanner to flag it.
+#
+# src/ is the source the pages are built from. Publishing it would put a second
+# copy of every page at a second address.
+exclude:
+  - worker
+  - src
+  - build
