@@ -2976,6 +2976,16 @@ body.page-inner footer { flex-shrink: 0; }
    iframe; this only gives it room and keeps it on the form's rhythm. */
 .pdcm-turnstile { margin: 4px 0 22px; min-height: 65px; }
 
+/* When it could not load. Reads as the notice it is, not as an error the
+   applicant caused. */
+.pdcm-turnstile-blocked {
+  min-height: 0;
+  font: 300 13.5px/1.7 "Lato", sans-serif;
+  color: var(--charcoal);
+  border-left: 2px solid var(--gold);
+  padding: 2px 0 2px 14px;
+}
+
 .pdcm-apply-row-3 { grid-template-columns: 1.18fr 1fr 1fr; }
 @media (max-width: 900px) { .pdcm-apply-row-3 { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 620px) { .pdcm-apply-row-3 { grid-template-columns: 1fr; } }

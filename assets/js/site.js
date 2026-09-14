@@ -606,7 +606,7 @@
      no request to a third party from this page. Set the site key (which is
      public by design -- it appears in the markup) and the endpoint's
      TURNSTILE_SECRET together; either alone does nothing useful. */
-  var TURNSTILE_SITE_KEY = "";
+  var TURNSTILE_SITE_KEY = "0x4AAAAAAE0uXk3t5Wr96bCN";
 
   /* These must match worker/src/inspect.js. The endpoint's limits are set
      by Cloudflare's free plan, which allows ten milliseconds of processing a
@@ -632,6 +632,8 @@
 
   /* The widget renders itself and writes a hidden cf-turnstile-response
      field into the form, which the endpoint verifies with Cloudflare. */
+  var turnstileBlocked = false;
+
   (function turnstile() {
     if (!TURNSTILE_SITE_KEY) return;
 
@@ -647,6 +649,25 @@
     tag.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     tag.async = true;
     tag.defer = true;
+
+    /* If the widget never arrives -- a blocked domain, a privacy extension,
+       a corporate network -- the endpoint would refuse the submission and
+       tell the applicant to complete a verification that is not on their
+       screen. A candidate reading that has no way forward and no reason to
+       suspect it is not their fault. Say what happened and give them the
+       address instead. */
+    function unavailable() {
+      if (window.turnstile) return;
+      turnstileBlocked = true;
+      slot.innerHTML = "";
+      slot.className = "pdcm-turnstile pdcm-turnstile-blocked";
+      slot.textContent = "The verification step could not load, which usually means a "
+        + "browser extension or network is blocking it. Please email your application "
+        + "to jgarrison@philipdavidcapital.com instead.";
+    }
+    tag.onerror = unavailable;
+    window.setTimeout(unavailable, 9000);
+
     document.head.appendChild(tag);
   })();
 
@@ -1089,6 +1110,12 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     showStatus("");
+
+    if (turnstileBlocked) {
+      showStatus("The verification step could not load on this connection. Please email "
+        + "your application to jgarrison@philipdavidcapital.com.");
+      return;
+    }
 
     var bad = validate();
     if (bad) {
