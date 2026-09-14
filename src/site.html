@@ -4102,6 +4102,19 @@ footer .foot-top { padding-bottom: 22px; }
      approved. */
   var ENDPOINT = "https://pdcm-careers.jgarrison.workers.dev";
 
+  /* ── Turnstile ────────────────────────────────────────────────────
+     Cloudflare's check that a browser, driven by a person, produced this
+     submission. The honeypot below catches something that fills every input
+     it finds; anyone who reads the form once steps around it. A token cannot
+     be read off the page -- Cloudflare issues it to that browser, for this
+     widget, and accepts it once.
+
+     Empty means off, and off means nothing is loaded: no widget, no script,
+     no request to a third party from this page. Set the site key (which is
+     public by design -- it appears in the markup) and the endpoint's
+     TURNSTILE_SECRET together; either alone does nothing useful. */
+  var TURNSTILE_SITE_KEY = "";
+
   /* These must match worker/src/inspect.js. The endpoint's limits are set
      by Cloudflare's free plan, which allows ten milliseconds of processing a
      request -- and simply reading an upload costs a share of that. A page
@@ -4124,10 +4137,29 @@ footer .foot-top { padding-bottom: 22px; }
 
   form.setAttribute("action", ENDPOINT);
 
-  /* A honeypot. It is off-screen and not reachable by keyboard, so a person
-     never fills it in; something automated filling every field it finds
-     does. The endpoint answers those with an acknowledgement and delivers
-     nothing. */
+  /* The widget renders itself and writes a hidden cf-turnstile-response
+     field into the form, which the endpoint verifies with Cloudflare. */
+  (function turnstile() {
+    if (!TURNSTILE_SITE_KEY) return;
+
+    var slot = document.createElement("div");
+    slot.className = "cf-turnstile pdcm-turnstile";
+    slot.setAttribute("data-sitekey", TURNSTILE_SITE_KEY);
+    slot.setAttribute("data-theme", "light");
+    slot.setAttribute("data-action", "careers");
+    if (button && button.parentNode) button.parentNode.insertBefore(slot, button);
+    else form.appendChild(slot);
+
+    var tag = document.createElement("script");
+    tag.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    tag.async = true;
+    tag.defer = true;
+    document.head.appendChild(tag);
+  })();
+
+  /* A honeypot, kept alongside it. The two catch different things: this one
+     costs nothing and stops a crawler that never executes any script, which
+     is most of them. */
   (function honeypot() {
     var i = document.createElement("input");
     i.type = "text";
@@ -4253,14 +4285,124 @@ footer .foot-top { padding-bottom: 22px; }
     }).catch(function () { return ""; });
   }
 
+  /* ── Compressed streams ───────────────────────────────────────────
+     A PDF may hold its content in deflate-compressed streams, and the
+     markers above are then not present in the raw bytes at all: searching
+     the file as it sits on disk finds nothing, because the script is inside
+     a compressed object.
+
+     Inflating costs about nine milliseconds a stream. The endpoint is
+     allowed ten milliseconds for an entire request, which is why it does not
+     do this -- but the candidate's own processor is idle and unmetered, so
+     the work belongs here. Bounded to a few streams and a fixed output size
+     so a large file cannot lock up a phone.
+
+     Like every check on this page it can be bypassed by posting straight to
+     the endpoint. It is aimed at the honest case -- an applicant carrying
+     something they do not know about -- and that applicant is using this
+     form. */
+
+  var INFLATE_UNDER = 400 * 1024;   /* larger files are left to the endpoint */
+  var MAX_STREAMS   = 4;
+  var MAX_EXPANDED  = 256 * 1024;
+
+  function inflateRaw(chunk, cap) {
+    if (typeof DecompressionStream === "undefined") return Promise.resolve(null);
+    var stream;
+    try {
+      stream = new Blob([chunk]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    } catch (e) { return Promise.resolve(null); }
+
+    var reader = stream.getReader();
+    var parts = [], total = 0;
+
+    function gathered() {
+      if (!parts.length) return null;
+      var out = new Uint8Array(total), at = 0;
+      for (var i = 0; i < parts.length; i++) { out.set(parts[i], at); at += parts[i].length; }
+      return out;
+    }
+
+    function pump() {
+      return reader.read().then(function (r) {
+        if (r.done) return gathered();
+        total += r.value.length;
+        /* A small file that expands without bound is itself the attack. */
+        if (total > cap) { reader.cancel(); return gathered(); }
+        parts.push(r.value);
+        return pump();
+      }).catch(function () {
+        /* A PDF stream is followed by "endstream" and the rest of the file,
+           and the chunk handed over here runs past the compressed data into
+           that. The decoder reaches the end of the deflate stream, meets the
+           trailing bytes, and errors -- by which point it has already
+           produced every byte of the content.
+
+           Chromium errors here where Node does not, so discarding the output
+           on error meant this check found nothing in a real browser while
+           passing its test under Node. Keep what was decoded. */
+        return gathered();
+      });
+    }
+    return pump();
+  }
+
+  function deepPdfProblem(bytes) {
+    if (bytes.length > INFLATE_UNDER) return Promise.resolve(null);
+
+    var latin = new TextDecoder("latin1").decode(bytes);
+    var at = 0, opened = 0, expanded = 0;
+
+    function next() {
+      if (opened >= MAX_STREAMS || expanded >= MAX_EXPANDED) return Promise.resolve(null);
+
+      at = latin.indexOf("stream", at);
+      if (at === -1) return Promise.resolve(null);
+
+      var start = at + 6;
+      if (latin.charCodeAt(start) === 13) start++;
+      if (latin.charCodeAt(start) === 10) start++;
+      at = start;
+
+      var end = Math.min(start + 96 * 1024, bytes.length);
+      /* +2 skips the zlib header; PDF streams carry one, deflate-raw does not
+         expect it. A stream that is not deflate simply fails to inflate and
+         is skipped. */
+      return inflateRaw(bytes.subarray(start + 2, end), MAX_EXPANDED).then(function (out) {
+        if (out) {
+          opened++;
+          expanded += out.length;
+          var text = new TextDecoder("latin1").decode(out);
+          for (var i = 0; i < PDF_ACTIVE.length; i++) {
+            if (text.indexOf(PDF_ACTIVE[i]) !== -1) {
+              return "This PDF contains scripting inside a compressed section. "
+                   + "Please print it to a new PDF and attach that.";
+            }
+          }
+        }
+        return next();
+      });
+    }
+    return next();
+  }
+
   function inspect(file) {
     var ext = (file.name.split(".").pop() || "").toLowerCase();
     return file.arrayBuffer().then(function (buf) {
-      var problem = inspectBytes(new Uint8Array(buf), ext);
+      var bytes = new Uint8Array(buf);
+      var problem = inspectBytes(bytes, ext);
       if (problem) return problem;
-      return hashOf(buf).then(function (hex) {
-        if (hex) setHash(file.field, hex);
-        return null;
+
+      var deeper = startsWith(bytes, [0x25, 0x50, 0x44, 0x46])
+        ? deepPdfProblem(bytes)
+        : Promise.resolve(null);
+
+      return deeper.then(function (found) {
+        if (found) return found;
+        return hashOf(buf).then(function (hex) {
+          if (hex) setHash(file.field, hex);
+          return null;
+        });
       });
     }).catch(function () {
       /* Unreadable is not the same as unsafe, but it is not sendable either. */
@@ -4528,6 +4670,12 @@ footer .foot-top { padding-bottom: 22px; }
   function fail(reason) {
     button.disabled = false;
     button.textContent = "Submit Application";
+
+    /* A token is accepted once. Leaving a spent one in the form would turn
+       any recoverable refusal into a second, inexplicable one. */
+    if (window.turnstile && typeof window.turnstile.reset === "function") {
+      try { window.turnstile.reset(); } catch (e) {}
+    }
     showStatus(reason || "The application could not be sent. Please try again, or email it to "
       + "jgarrison@philipdavidcapital.com.");
   }

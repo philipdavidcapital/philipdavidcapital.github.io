@@ -53,28 +53,39 @@ function zipEntryNames(bytes) {
 }
 __name(zipEntryNames, "zipEntryNames");
 async function inflateRaw(chunk, cap) {
-  const ds = new DecompressionStream("deflate-raw");
-  const stream = new Blob([chunk]).stream().pipeThrough(ds);
-  const reader = stream.getReader();
   const parts = [];
   let total = 0;
-  for (; ; ) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    if (total > cap) {
-      await reader.cancel();
-      throw new Error("expands too far");
+  const gathered = /* @__PURE__ */ __name(() => {
+    if (!parts.length) return null;
+    const out = new Uint8Array(total);
+    let o = 0;
+    for (const part of parts) {
+      out.set(part, o);
+      o += part.length;
     }
-    parts.push(value);
+    return out;
+  }, "gathered");
+  let reader;
+  try {
+    const ds = new DecompressionStream("deflate-raw");
+    reader = new Blob([chunk]).stream().pipeThrough(ds).getReader();
+  } catch {
+    return null;
   }
-  const out = new Uint8Array(total);
-  let o = 0;
-  for (const part of parts) {
-    out.set(part, o);
-    o += part.length;
+  try {
+    for (; ; ) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > cap) {
+        await reader.cancel();
+        break;
+      }
+      parts.push(value);
+    }
+  } catch {
   }
-  return out;
+  return gathered();
 }
 __name(inflateRaw, "inflateRaw");
 var PDF_ACTIVE = ["/JavaScript", "/JS", "/OpenAction", "/AA", "/Launch", "/EmbeddedFile", "/RichMedia"];
@@ -93,15 +104,14 @@ async function pdfHasActiveContent(bytes, texts, deep) {
     if (head.charCodeAt(s) === 10) s++;
     at = s;
     const end = Math.min(s + 96 * 1024, bytes.length);
-    try {
-      const out = await inflateRaw(bytes.subarray(s + 2, end), 192 * 1024);
+    const out = await inflateRaw(bytes.subarray(s + 2, end), 192 * 1024);
+    if (out) {
       expanded += out.length;
       opened++;
       const text = latin1.decode(out);
       for (const marker of PDF_ACTIVE) {
         if (text.indexOf(marker) !== -1) return marker + " (compressed)";
       }
-    } catch {
     }
   }
   return null;
@@ -230,6 +240,48 @@ async function knownMalicious(hash, apiKey, fetchImpl = fetch) {
 }
 __name(knownMalicious, "knownMalicious");
 
+// src/turnstile.js
+var VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+async function verifyTurnstile(token, secret, ip, fetchImpl = fetch) {
+  if (!secret) return { configured: false, ok: true, reason: "not configured" };
+  if (!token) return { configured: true, ok: false, reason: "no token supplied" };
+  const body = new FormData();
+  body.append("secret", secret);
+  body.append("response", token);
+  if (ip) body.append("remoteip", ip);
+  let res;
+  try {
+    res = await fetchImpl(VERIFY, { method: "POST", body });
+  } catch {
+    return { configured: true, ok: true, reason: "verification unreachable" };
+  }
+  if (!res.ok) return { configured: true, ok: true, reason: `verification returned ${res.status}` };
+  const data = await res.json().catch(() => ({}));
+  if (data.success) return { configured: true, ok: true, reason: "verified" };
+  return {
+    configured: true,
+    ok: false,
+    reason: (data["error-codes"] || []).join(", ") || "rejected"
+  };
+}
+__name(verifyTurnstile, "verifyTurnstile");
+
+// src/ratelimit.js
+async function withinRate(env, ip) {
+  const limiter = env && env.RATE_LIMITER;
+  if (!limiter || typeof limiter.limit !== "function") {
+    return { checked: false, allowed: true, reason: "no rate limiter bound" };
+  }
+  const key = ip || "unknown";
+  try {
+    const { success } = await limiter.limit({ key });
+    return { checked: true, allowed: Boolean(success), reason: success ? "within limit" : "over limit" };
+  } catch {
+    return { checked: false, allowed: true, reason: "limiter unavailable" };
+  }
+}
+__name(withinRate, "withinRate");
+
 // src/email.js
 var NAVY = "#192c44";
 var CHARCOAL = "#5e5f5f";
@@ -344,6 +396,10 @@ var index_default = {
       });
     }
     if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
+    const rate = await withinRate(env, request.headers.get("cf-connecting-ip"));
+    if (!rate.allowed) {
+      return json({ error: "Too many submissions from this connection. Please try again shortly." }, 429, origin);
+    }
     let form;
     try {
       form = await request.formData();
@@ -355,6 +411,14 @@ var index_default = {
     }
     const fields = {};
     for (const [k, v] of form.entries()) if (typeof v === "string") fields[k] = v.trim();
+    const human = await verifyTurnstile(
+      fields["cf-turnstile-response"],
+      env.TURNSTILE_SECRET,
+      request.headers.get("cf-connecting-ip")
+    );
+    if (!human.ok) {
+      return json({ error: "Please complete the verification and submit again." }, 400, origin);
+    }
     const missing = REQUIRED.filter((k) => !fields[k]);
     if (missing.length) {
       return json({ error: `Please complete: ${missing.join(", ")}.` }, 400, origin);

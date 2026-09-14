@@ -8,6 +8,8 @@
 
 import { inspect, deepScanApplies, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './inspect.js';
 import { knownMalicious } from './virustotal.js';
+import { verifyTurnstile } from './turnstile.js';
+import { withinRate } from './ratelimit.js';
 import { buildEmail } from './email.js';
 
 const REQUIRED = ['First Name', 'Last Name', 'Email', 'Phone', 'Country', 'City'];
@@ -46,6 +48,13 @@ export default {
     }
     if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, origin);
 
+    /* Before the body is touched. Reading a megabyte and a half to then refuse
+       it would make a flood cheaper to send than to reject. */
+    const rate = await withinRate(env, request.headers.get('cf-connecting-ip'));
+    if (!rate.allowed) {
+      return json({ error: 'Too many submissions from this connection. Please try again shortly.' }, 429, origin);
+    }
+
     let form;
     try {
       form = await request.formData();
@@ -61,6 +70,17 @@ export default {
 
     const fields = {};
     for (const [k, v] of form.entries()) if (typeof v === 'string') fields[k] = v.trim();
+
+    /* Ahead of the attachments, which are the expensive part. A submission
+       that cannot prove a browser produced it is not worth reading. */
+    const human = await verifyTurnstile(
+      fields['cf-turnstile-response'],
+      env.TURNSTILE_SECRET,
+      request.headers.get('cf-connecting-ip'),
+    );
+    if (!human.ok) {
+      return json({ error: 'Please complete the verification and submit again.' }, 400, origin);
+    }
 
     const missing = REQUIRED.filter((k) => !fields[k]);
     if (missing.length) {

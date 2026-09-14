@@ -20,12 +20,17 @@ Three reasons it exists:
 ## What it does, in order
 
 1. Rejects anything that is not a POST, and answers CORS preflight.
-2. Drops submissions that filled the honeypot field.
-3. Requires first name, last name, email, phone, country, city, and a résumé.
-4. Inspects every attachment (`src/inspect.js`). Nothing is sent if this
+2. Refuses an address that is over the submission limit, before reading the
+   body -- reading a megabyte and a half to then reject it would make a flood
+   cheaper to send than to refuse.
+3. Drops submissions that filled the honeypot field.
+4. Verifies the Turnstile token, if a secret is configured, before touching
+   the attachments.
+5. Requires first name, last name, email, phone, country, city, and a résumé.
+6. Inspects every attachment (`src/inspect.js`). Nothing is sent if this
    fails; the applicant is told what is wrong so they can correct it.
-5. Checks each file's SHA-256 against VirusTotal, if a key is configured.
-6. Sends one email through Resend with the files attached, `Reply-To` set to
+7. Checks each file's SHA-256 against VirusTotal, if a key is configured.
+8. Sends one email through Resend with the files attached, `Reply-To` set to
    the applicant.
 
 ## Deploying
@@ -88,6 +93,64 @@ If a key is ever pasted somewhere it should not be, delete it in Resend and
 create another. A key that has been exposed is not made safe by being deleted
 from the place it was pasted.
 
+## Turning on the two optional guards
+
+Both are off until configured, and the endpoint behaves exactly as it did
+before while they are. That is deliberate: deploying the code and setting the
+keys are separate acts, and the form must keep working in between.
+
+### Turnstile
+
+Cloudflare's check that a browser, driven by a person, produced the
+submission. Free and unmetered. The honeypot it supplements stops a crawler
+that fills every input it finds; anyone who reads the form once steps around
+it. A Turnstile token cannot be read off the page -- Cloudflare issues it to
+that browser, for that widget, and accepts it once.
+
+1. Cloudflare dashboard → **Turnstile** → **Add widget**.
+2. Hostnames: `philipdavidcapital.com` and `www.philipdavidcapital.com`.
+   Mode: **Managed**, which is invisible to nearly every real visitor.
+3. It gives a **site key** and a **secret key**.
+4. The site key goes in `TURNSTILE_SITE_KEY` in `src/site.html` -- it is
+   public by design and appears in the page's markup.
+5. The secret key goes in the Worker as `TURNSTILE_SECRET`, type **Secret**.
+
+Set both or neither. A site key with no secret renders a widget nobody
+checks; a secret with no site key refuses every submission, because no token
+is ever sent.
+
+Once a secret is set the check is mandatory: a missing or rejected token is
+refused. The one exception is Cloudflare's own verification endpoint being
+unreachable, which passes and says so in the log -- losing a real application
+over our outage is the worse failure, and a token that is present and
+*rejected* still fails.
+
+### Rate limit
+
+Protects the ability to receive applications rather than the inbox: the mail
+provider's free tier allows a hundred messages a day, and something
+submitting in a loop would spend that in minutes, so the next real candidate
+is refused by us.
+
+Needs a binding named `RATE_LIMITER`. In `wrangler.toml`:
+
+```toml
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
+```
+
+Whether the dashboard's **Bindings** tab offers a rate-limit binding, I have
+not confirmed -- if it does not, this one needs a `wrangler deploy` rather
+than a paste. Without the binding the endpoint runs unchanged and reports
+`no rate limiter bound` rather than implying a limit it is not enforcing.
+
+Five a minute per address is generous for a person and hostile to a loop. It
+is keyed on the address, which a household or an office shares, so the limit
+is set well clear of ordinary use.
+
 ## Testing
 
 ```sh
@@ -137,14 +200,14 @@ So:
   hash — but that check exists to catch malware an applicant does not know
   they are carrying, and someone deliberately bypassing the page is already
   past it. Every check that reads the file's actual structure runs here.
-- **Compressed-stream scanning is off by default, and nothing else covers
-  it.** One decompression spends the whole budget, so `DEEP_SCAN` defaults to
-  off and script hidden inside a compressed PDF stream is presently caught
-  nowhere: the page searches raw bytes but does not inflate them. An earlier
-  version of this file claimed the page did that work. It does not, and never
-  did. Closing the gap means either `DEEP_SCAN=1` here on a paid plan, or
-  inflating in the browser, where the applicant's own processor is free and
-  the check is a courtesy rather than a boundary.
+- **Compressed-stream scanning happens in the page.** One decompression
+  spends the whole budget here, so `DEEP_SCAN` stays off; the page inflates
+  instead, on the applicant's own processor, which is idle and unmetered.
+  That makes it a courtesy rather than a boundary -- someone posting straight
+  to this endpoint skips it -- but the case it addresses is an applicant
+  carrying something they do not know about, and that applicant is using the
+  form. Verified in Chromium against a PDF with script inside a compressed
+  object, not only in the test runner.
 
 Those figures were measured under Node, which is a stand-in for the Workers
 runtime rather than the thing itself — Node's own Blob handling accounts for

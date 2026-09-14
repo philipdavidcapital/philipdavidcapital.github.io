@@ -211,6 +211,11 @@ body.page-inner footer { flex-shrink: 0; }
    none of them is left absurdly wide. Country carries a little more room
    because country names are the longest of the three. Below the width where
    two columns already stack, this stacks with them. */
+
+/* The verification widget, when one is configured. Cloudflare sizes its own
+   iframe; this only gives it room and keeps it on the form's rhythm. */
+.pdcm-turnstile { margin: 4px 0 22px; min-height: 65px; }
+
 .pdcm-apply-row-3 { grid-template-columns: 1.18fr 1fr 1fr; }
 @media (max-width: 900px) { .pdcm-apply-row-3 { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 620px) { .pdcm-apply-row-3 { grid-template-columns: 1fr; } }

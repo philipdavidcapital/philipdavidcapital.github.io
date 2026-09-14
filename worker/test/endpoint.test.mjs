@@ -17,15 +17,27 @@ const ENV = {
 };
 
 let sent = null, vtReply = null, resendStatus = 200, vtThrows = false;
+let tsSuccess = true, tsThrows = false, tsStatus = 200;
 
 globalThis.fetch = async (url, init) => {
   if (String(url).includes('virustotal')) {
     if (vtThrows) throw new Error('network down');
     return vtReply ?? new Response('', { status: 404 });
   }
+  if (String(url).includes('challenges.cloudflare.com')) {
+    if (tsThrows) throw new Error('network down');
+    return new Response(
+      JSON.stringify({ success: tsSuccess, 'error-codes': tsSuccess ? [] : ['invalid-input-response'] }),
+      { status: tsStatus },
+    );
+  }
   sent = JSON.parse(init.body);
   return new Response(JSON.stringify({ id: 'x' }), { status: resendStatus });
 };
+
+/* A limiter that refuses everything, and one that is broken. */
+const DENY = { RATE_LIMITER: { limit: async () => ({ success: false }) } };
+const BROKEN = { RATE_LIMITER: { limit: async () => { throw new Error('down'); } } };
 
 function submission(over = {}, files = { Resume: 'good.pdf' }) {
   const fd = new FormData();
@@ -49,6 +61,7 @@ function submission(over = {}, files = { Resume: 'good.pdf' }) {
 const results = [];
 async function check(what, fn) {
   sent = null; vtReply = null; resendStatus = 200; vtThrows = false;
+  tsSuccess = true; tsThrows = false; tsStatus = 200;
   try { await fn(); results.push([true, what]); }
   catch (e) { results.push([false, `${what} — ${e.message}`]); }
 }
@@ -170,6 +183,67 @@ await check('an unknown origin gets the canonical one, not its own', async () =>
 await check('GET is refused', async () => {
   const r = await worker.fetch(new Request('https://api.example/apply', { method: 'GET' }), ENV);
   eq(r.status, 405, 'status');
+});
+
+/* ── Turnstile ──────────────────────────────────────────────────────
+   Configured or not is the whole of the behaviour difference. */
+
+const TS = { ...ENV, TURNSTILE_SECRET: 'ts-secret' };
+
+await check('with no secret set, nothing about Turnstile is required', async () => {
+  const r = await worker.fetch(submission(), ENV);
+  eq(r.status, 200, 'status');
+  eq(sent !== null, true, 'delivered');
+});
+
+await check('with a secret set, a submission carrying no token is refused', async () => {
+  const r = await worker.fetch(submission(), TS);
+  eq(r.status, 400, 'status');
+  eq(sent, null, 'nothing was sent');
+});
+
+await check('with a secret set, a verified token is delivered', async () => {
+  const r = await worker.fetch(submission({ 'cf-turnstile-response': 'tok' }), TS);
+  eq(r.status, 200, 'status');
+  eq(sent !== null, true, 'delivered');
+});
+
+await check('a token Cloudflare rejects is refused', async () => {
+  tsSuccess = false;
+  const r = await worker.fetch(submission({ 'cf-turnstile-response': 'tok' }), TS);
+  eq(r.status, 400, 'status');
+  eq(sent, null, 'nothing was sent');
+});
+
+await check('our own outage does not cost a real applicant their submission', async () => {
+  tsThrows = true;
+  const r = await worker.fetch(submission({ 'cf-turnstile-response': 'tok' }), TS);
+  eq(r.status, 200, 'status');
+  eq(sent !== null, true, 'delivered');
+});
+
+await check('a token is never quietly forwarded into the notification', async () => {
+  await worker.fetch(submission({ 'cf-turnstile-response': 'tok' }), TS);
+  eq(/cf-turnstile/.test(sent.html + sent.text), false, 'token absent from the email');
+});
+
+/* ── Rate limit ─────────────────────────────────────────────────── */
+
+await check('over the limit is refused with 429, and nothing is read or sent', async () => {
+  const r = await worker.fetch(submission(), { ...ENV, ...DENY });
+  eq(r.status, 429, 'status');
+  eq(sent, null, 'nothing was sent');
+});
+
+await check('a broken limiter does not take the form down with it', async () => {
+  const r = await worker.fetch(submission(), { ...ENV, ...BROKEN });
+  eq(r.status, 200, 'status');
+  eq(sent !== null, true, 'delivered');
+});
+
+await check('with no limiter bound the endpoint behaves as before', async () => {
+  const r = await worker.fetch(submission(), ENV);
+  eq(r.status, 200, 'status');
 });
 
 let fail = 0;

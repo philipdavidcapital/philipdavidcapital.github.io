@@ -93,23 +93,51 @@ export function zipEntryNames(bytes) {
    PDF, so markers hidden by compression are searchable. Bounded: a document
    that expands unreasonably is refused rather than allowed to exhaust
    memory. */
-async function inflateRaw(chunk, cap) {
-  const ds = new DecompressionStream('deflate-raw');
-  const stream = new Blob([chunk]).stream().pipeThrough(ds);
-  const reader = stream.getReader();
+/* Returns whatever was decoded, including when the decoder stops early.
+ *
+ * A PDF stream is followed by `endstream` and the rest of the file, and the
+ * chunk passed in here runs past the compressed data into that. The decoder
+ * reaches the end of the deflate stream, meets the trailing bytes and errors
+ * -- having already produced every byte of the content. Node tolerates that
+ * where other runtimes do not, so throwing the output away on error meant
+ * this check passed its test here and would have found nothing where it
+ * actually runs. Keep what was decoded and let the caller search it.
+ *
+ * The same applies at the cap: a file engineered to expand without bound is
+ * refused on the strength of what it expanded to before the limit.
+ */
+export async function inflateRaw(chunk, cap) {
   const parts = [];
   let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    if (total > cap) { await reader.cancel(); throw new Error('expands too far'); }
-    parts.push(value);
+
+  const gathered = () => {
+    if (!parts.length) return null;
+    const out = new Uint8Array(total);
+    let o = 0;
+    for (const part of parts) { out.set(part, o); o += part.length; }
+    return out;
+  };
+
+  let reader;
+  try {
+    const ds = new DecompressionStream('deflate-raw');
+    reader = new Blob([chunk]).stream().pipeThrough(ds).getReader();
+  } catch {
+    return null;
   }
-  const out = new Uint8Array(total);
-  let o = 0;
-  for (const part of parts) { out.set(part, o); o += part.length; }
-  return out;
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > cap) { await reader.cancel(); break; }
+      parts.push(value);
+    }
+  } catch {
+    /* Deliberately not rethrown -- see above. */
+  }
+  return gathered();
 }
 
 const PDF_ACTIVE = ['/JavaScript', '/JS', '/OpenAction', '/AA', '/Launch', '/EmbeddedFile', '/RichMedia'];
@@ -155,15 +183,18 @@ async function pdfHasActiveContent(bytes, texts, deep) {
     at = s;
 
     const end = Math.min(s + 96 * 1024, bytes.length);
-    try {
-      const out = await inflateRaw(bytes.subarray(s + 2, end), 192 * 1024);
+    /* Null means nothing came out at all -- not a deflate stream, or a header
+       this did not expect. Anything else is worth searching, however it
+       ended. */
+    const out = await inflateRaw(bytes.subarray(s + 2, end), 192 * 1024);
+    if (out) {
       expanded += out.length;
       opened++;
       const text = latin1.decode(out);
       for (const marker of PDF_ACTIVE) {
         if (text.indexOf(marker) !== -1) return marker + ' (compressed)';
       }
-    } catch { /* not a deflate stream */ }
+    }
   }
   return null;
 }
