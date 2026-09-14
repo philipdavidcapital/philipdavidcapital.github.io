@@ -359,11 +359,8 @@ if js.count(ACK_OLD) != 1:
     sys.exit("FAIL: entry notice acknowledgement not found")
 js = js.replace(ACK_OLD, ACK_NEW)
 
-RET_OLD = 'var RETURN_TO = location.origin + location.pathname + "?application=received";'
-RET_NEW = 'var RETURN_TO = location.origin + "/careers/?application=received";'
-if js.count(RET_OLD) != 1:
-    sys.exit("FAIL: return address not found")
-js = js.replace(RET_OLD, RET_NEW)
+if "application=received" in js:
+    sys.exit("FAIL: a return-trip parameter is back; the form answers in place now")
 
 JS_OUT.parent.mkdir(parents=True, exist_ok=True)
 JS_OUT.write_text(

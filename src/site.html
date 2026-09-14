@@ -4093,19 +4093,14 @@ footer .foot-top { padding-bottom: 22px; }
 
   /* ── Where applications are delivered ──────────────────────────────
      GitHub Pages serves static files and cannot send mail itself, so the
-     form posts to a form-relay service which emails the firm. FormSubmit
-     needs no account: the first submission triggers one confirmation mail
-     to the address below, and every submission after that is delivered.
+     form posts to the firm's own endpoint, which inspects the attachments
+     and mails them on. Its source is in worker/ in this repository.
 
-     The address is already published in the Contact section, so naming it
-     here exposes nothing new. To move to another relay (Formspree,
-     Web3Forms), change these two lines and nothing else. */
-  var ENDPOINT  = "https://formsubmit.co/jgarrison@philipdavidcapital.com";
-
-  /* Where the relay sends the candidate once it has the application. The
-     page reopens the Careers panel on its acknowledgement, so the applicant
-     never sees the relay's own branding. */
-  var RETURN_TO = location.origin + location.pathname + "?application=received";
+     It replaces the public relay this used to post to. The relay stored
+     every application that passed through it, put an advertisement in the
+     firm's inbox, and could only be given files a browser had already
+     approved. */
+  var ENDPOINT = "https://pdcm-careers.jgarrison.workers.dev";
 
   /* These must match worker/src/inspect.js. The endpoint's limits are set
      by Cloudflare's free plan, which allows ten milliseconds of processing a
@@ -4129,24 +4124,21 @@ footer .foot-top { padding-bottom: 22px; }
 
   form.setAttribute("action", ENDPOINT);
 
-  /* FormSubmit's own options, and a honeypot it uses to drop bots. */
-  [["_subject", "Careers application — philipdavidcapital.com"],
-   ["_template", "table"],
-   ["_captcha", "false"],
-   ["_next", RETURN_TO],
-   ["_honey", ""]].forEach(function (pair) {
+  /* A honeypot. It is off-screen and not reachable by keyboard, so a person
+     never fills it in; something automated filling every field it finds
+     does. The endpoint answers those with an acknowledgement and delivers
+     nothing. */
+  (function honeypot() {
     var i = document.createElement("input");
-    i.type = pair[0] === "_honey" ? "text" : "hidden";
-    i.name = pair[0];
-    i.value = pair[1];
-    if (pair[0] === "_honey") {
-      i.style.cssText = "position:absolute;left:-9999px;width:1px;height:1px;opacity:0";
-      i.tabIndex = -1;
-      i.setAttribute("aria-hidden", "true");
-      i.autocomplete = "off";
-    }
+    i.type = "text";
+    i.name = "_honey";
+    i.value = "";
+    i.style.cssText = "position:absolute;left:-9999px;width:1px;height:1px;opacity:0";
+    i.tabIndex = -1;
+    i.setAttribute("aria-hidden", "true");
+    i.autocomplete = "off";
     form.appendChild(i);
-  });
+  })();
 
 
   /* ── Attachment inspection ────────────────────────────────────────
@@ -4163,7 +4155,9 @@ footer .foot-top { padding-bottom: 22px; }
      type would catch, because both are supplied by whoever is uploading.
 
      It is not a substitute for scanning the file against known malware.
-     That needs a server, and is noted in the delivery notes. */
+     The endpoint does that, against the hash computed below -- and repeats
+     every check here, where it can also decompress. This pass exists to
+     tell the candidate what is wrong before they wait on an upload. */
 
   var SIGNATURES = [
     { name: "a Windows program", bytes: [0x4D, 0x5A] },                       /* MZ    */
@@ -4451,38 +4445,6 @@ footer .foot-top { padding-bottom: 22px; }
     }
   }
 
-  /* The return trip. The relay has the application and has sent the
-     candidate back to RETURN_TO, so reopen the Careers panel showing the
-     acknowledgement instead of the empty form they just filled in. The
-     entry notice opens over every load by design, so this waits for it to
-     be acknowledged rather than fighting it. */
-  (function handleReturn() {
-    if (location.search.indexOf("application=received") === -1) return;
-
-    succeed();
-
-    /* Drop the parameter so a refresh or a shared link is an ordinary
-       visit, not a second acknowledgement. */
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, "", location.pathname + location.hash);
-    }
-
-    var trigger = document.querySelector('[data-modal-trigger="careersModal"]');
-    if (!trigger) return;
-
-    function openIt() { trigger.click(); }
-
-    var gate = document.querySelector("[data-entry-disclaimer-close]");
-    if (gate && document.body.classList.contains("entry-disclaimer-open")) {
-      gate.addEventListener("click", function once() {
-        gate.removeEventListener("click", once);
-        window.setTimeout(openIt, 260);
-      });
-    } else {
-      window.setTimeout(openIt, 260);
-    }
-  })();
-
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     showStatus("");
@@ -4535,14 +4497,33 @@ footer .foot-top { padding-bottom: 22px; }
   function send() {
     button.textContent = "Sending\u2026";
 
-    /* This posts the form normally rather than in the background.
-       The relay's background (/ajax/) endpoint accepts the text fields but
-       discards file uploads: the first live application arrived with no
-       resume and no cover-letter row at all, only the typed answers. An
-       application without the resume is worse than no application, so the
-       attachment decides the method. A normal POST carries the files, and
-       RETURN_TO brings the candidate straight back here. */
-    HTMLFormElement.prototype.submit.call(form);
+    /* Posted in the background, so the acknowledgement replaces the form on
+       the page the candidate is already looking at. The endpoint takes the
+       same multipart body the form would have submitted -- attachments
+       included -- and answers with JSON.
+
+       Its own copy of the attachment checks runs after this one and can see
+       more: it decompresses, so a macro inside a .docx or script inside a
+       compressed PDF stream is caught there rather than here. If it refuses,
+       its reason is what the candidate is shown. */
+    var body = new FormData(form);
+
+    fetch(ENDPOINT, { method: "POST", body: body })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; });
+      })
+      .then(function (data) {
+        if (data && data.ok) { succeed(); return; }
+        fail(data && data.error);
+      })
+      .catch(function () { fail(null); });
+  }
+
+  function fail(reason) {
+    button.disabled = false;
+    button.textContent = "Submit Application";
+    showStatus(reason || "The application could not be sent. Please try again, or email it to "
+      + "jgarrison@philipdavidcapital.com.");
   }
 })();
 </script>
