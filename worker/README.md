@@ -137,10 +137,14 @@ So:
   hash — but that check exists to catch malware an applicant does not know
   they are carrying, and someone deliberately bypassing the page is already
   past it. Every check that reads the file's actual structure runs here.
-- **Compressed-stream scanning is off by default.** One decompression spends
-  the whole budget. The page does it instead, where the applicant's own
-  processor is free. Set `DEEP_SCAN=1` to enable it here, which needs a paid
-  plan.
+- **Compressed-stream scanning is off by default, and nothing else covers
+  it.** One decompression spends the whole budget, so `DEEP_SCAN` defaults to
+  off and script hidden inside a compressed PDF stream is presently caught
+  nowhere: the page searches raw bytes but does not inflate them. An earlier
+  version of this file claimed the page did that work. It does not, and never
+  did. Closing the gap means either `DEEP_SCAN=1` here on a paid plan, or
+  inflating in the browser, where the applicant's own processor is free and
+  the check is a courtesy rather than a boundary.
 
 Those figures were measured under Node, which is a stand-in for the Workers
 runtime rather than the thing itself — Node's own Blob handling accounts for
