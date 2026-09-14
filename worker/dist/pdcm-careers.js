@@ -119,7 +119,7 @@ async function inspect(name, bytes, deep = false) {
     return `${name} is a .${ext} file. Accepted types are ${ALLOWED_EXTENSIONS.join(", ")}.`;
   }
   if (bytes.length > MAX_FILE_BYTES) {
-    return `${name} is larger than 5 MB.`;
+    return `${name} is larger than ${MAX_FILE_BYTES / 1024 / 1024} MB.`;
   }
   if (bytes.length === 0) {
     return `${name} is empty.`;
