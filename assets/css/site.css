@@ -2952,6 +2952,21 @@ body.page-inner main > section#notfound { padding-top: 190px; }
 @media (max-width: 700px) { body.page-inner main > section#page,
 body.page-inner main > section#notfound { padding-top: 150px; } }
 
+/* A footer page is as long as its contents, and the Careers page is at its
+   shortest once the form has been replaced by the acknowledgement. Without
+   this the footer stopped wherever the text did and the page's own background
+   showed below it -- the firm's mark floating mid-screen over a white band.
+
+   The nav is fixed and the notices are fixed, so neither is a flex item; only
+   the content and the footer are, and the content takes the slack. */
+body.page-inner {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body.page-inner main { flex: 1 0 auto; }
+body.page-inner footer { flex-shrink: 0; }
+
 /* Country, state and city read as one address, narrowing left to right, and
    none of them is left absurdly wide. Country carries a little more room
    because country names are the longest of the three. Below the width where

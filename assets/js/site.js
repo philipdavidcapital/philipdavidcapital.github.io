@@ -932,6 +932,12 @@
 
   function succeed() {
     form.hidden = true;
+
+    /* The note explaining the asterisks belongs to the form, not to the page,
+       and reads as a leftover once the form it describes is gone. */
+    var note = document.querySelector(".pdcm-required-note");
+    if (note) note.hidden = true;
+
     if (done) {
       done.hidden = false;
       done.scrollIntoView({ block: "nearest" });
