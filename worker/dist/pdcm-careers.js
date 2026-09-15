@@ -298,7 +298,7 @@ var row = /* @__PURE__ */ __name((label, value) => `
           <td style="padding:9px 0;vertical-align:top;
                      font:300 14px/1.7 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">${value}</td>
         </tr>`, "row");
-function buildEmail(fields, files, scans) {
+function buildEmail(fields, files) {
   const name = [fields["First Name"], fields["Last Name"]].filter(Boolean).join(" ").trim() || "Applicant";
   const place = [fields.City, fields["State / Region"], fields.Country].filter(Boolean).join(", ");
   const rows = [
@@ -314,14 +314,11 @@ function buildEmail(fields, files, scans) {
          <div style="font:300 14px/1.8 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};
                      white-space:pre-wrap;">${esc(comments)}</div>
        </td></tr>` : "";
-  const attachmentLines = files.map((f) => {
-    const scan = scans[f.field] || {};
-    const note = scan.checked ? scan.malicious ? "FLAGGED" : "inspected \xB7 not known malware" : `inspected \xB7 not checked against known malware: ${scan.reason || "lookup did not run"}`;
-    return `<div style="font:300 13px/1.9 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">
+  const attachmentLines = files.map((f) => `
+      <div style="font:300 13px/1.9 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">
         ${esc(f.field)}: ${esc(f.filename)}
-        <span style="color:#9a9a9a;">(${(f.bytes.length / 1024).toFixed(0)} KB &middot; ${esc(note)})</span>
-      </div>`;
-  }).join("");
+        <span style="color:#9a9a9a;">(${(f.bytes.length / 1024).toFixed(0)} KB)</span>
+      </div>`).join("");
   const html = `<!doctype html>
 <html><body style="margin:0;padding:0;background:${PAPER};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -467,7 +464,7 @@ var index_default = {
         return json({ error: `${f.filename} was identified as malware and has not been sent.` }, 400, origin);
       }
     }
-    const { subject, html, text } = buildEmail(fields, files, scans);
+    const { subject, html, text } = buildEmail(fields, files);
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {

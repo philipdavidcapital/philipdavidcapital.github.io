@@ -26,7 +26,7 @@ const row = (label, value) => `
                      font:300 14px/1.7 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">${value}</td>
         </tr>`;
 
-export function buildEmail(fields, files, scans) {
+export function buildEmail(fields, files) {
   const name = [fields['First Name'], fields['Last Name']].filter(Boolean).join(' ').trim() || 'Applicant';
   const place = [fields.City, fields['State / Region'], fields.Country].filter(Boolean).join(', ');
 
@@ -54,16 +54,18 @@ export function buildEmail(fields, files, scans) {
      key the firm may not have configured. An earlier version reported that
      lookup alone as "not checked", which read as though nothing had been
      examined at all. */
-  const attachmentLines = files.map((f) => {
-    const scan = scans[f.field] || {};
-    const note = scan.checked
-      ? (scan.malicious ? 'FLAGGED' : 'inspected \u00b7 not known malware')
-      : `inspected \u00b7 not checked against known malware: ${scan.reason || 'lookup did not run'}`;
-    return `<div style="font:300 13px/1.9 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">
+  /* Name and size only. The checks still run in full and still decide whether
+     this email is sent at all -- a file that fails inspection or is flagged is
+     refused and nothing is delivered -- so every attachment that appears here
+     has already passed. Saying so on each line reported the outcome of a
+     decision that had already been made, on a message that only exists because
+     the answer was yes. It read as a warning where there was nothing to warn
+     about. The endpoint's log keeps the detail if it is ever wanted. */
+  const attachmentLines = files.map((f) => `
+      <div style="font:300 13px/1.9 Lato,Helvetica,Arial,sans-serif;color:${CHARCOAL};">
         ${esc(f.field)}: ${esc(f.filename)}
-        <span style="color:#9a9a9a;">(${(f.bytes.length / 1024).toFixed(0)} KB &middot; ${esc(note)})</span>
-      </div>`;
-  }).join('');
+        <span style="color:#9a9a9a;">(${(f.bytes.length / 1024).toFixed(0)} KB)</span>
+      </div>`).join('');
 
   const html = `<!doctype html>
 <html><body style="margin:0;padding:0;background:${PAPER};">

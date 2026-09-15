@@ -148,7 +148,7 @@ export default {
       }
     }
 
-    const { subject, html, text } = buildEmail(fields, files, scans);
+    const { subject, html, text } = buildEmail(fields, files);
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',

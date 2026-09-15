@@ -11,12 +11,7 @@ const files = [
   { field: 'Resume', filename: 'Ada Lovelace CV.pdf', bytes: new Uint8Array(184320) },
   { field: 'Cover Letter', filename: 'cover.pdf', bytes: new Uint8Array(41000) },
 ];
-const scans = {
-  Resume: { checked: true, malicious: false },
-  'Cover Letter': { checked: true, malicious: false },
-};
-
-const { subject, html, text } = buildEmail(fields, files, scans);
+const { subject, html, text } = buildEmail(fields, files);
 writeFileSync(new URL('./email-preview.html', import.meta.url), html);
 
 const checks = [
@@ -26,15 +21,14 @@ const checks = [
   ['location is joined', html.includes('Tulsa, Oklahoma, United States')],
   ['comments kept with line breaks', html.includes('white-space:pre-wrap')],
   ['both attachments listed', html.includes('Ada Lovelace CV.pdf') && html.includes('cover.pdf')],
-  ['scan result shown', html.includes('not known malware')],
-  ['inspection is stated, not left to inference', html.includes('inspected')],
-  ['a lookup that did not run says why', buildEmail(fields, files,
-    { Resume: { checked: false, reason: 'no API key configured' } })
-    .html.includes('no API key configured')],
+  /* The checks decide whether this email exists at all, so reporting their
+     verdict inside it was noise. Nothing about scanning belongs in the text. */
+  ['no scan commentary anywhere', !/inspected|known malware|not checked|FLAGGED/i.test(html + text)],
+  ['attachment size still shown', html.includes('180 KB') || html.includes('181 KB')],
   ['plain-text alternative', text.includes('Ada Lovelace') && text.includes('918 555 0134')],
 ];
 // Injection: a name containing markup must not become markup.
-const nasty = buildEmail({ ...fields, 'First Name': '<script>x</script>' }, [], {});
+const nasty = buildEmail({ ...fields, 'First Name': '<script>x</script>' }, []);
 checks.push(['html in a field is escaped', !nasty.html.includes('<script>x</script>')]);
 
 let fail = 0;

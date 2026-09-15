@@ -159,7 +159,13 @@ await check('scanner being down does not lose the application', async () => {
   vtThrows = true;
   const r = await worker.fetch(submission(), { ...ENV, VIRUSTOTAL_API_KEY: 'k' });
   eq(r.status, 200, 'still delivered');
-  eq(/not checked/.test(sent.html), true, 'the email says the check did not run');
+  eq(sent !== null, true, 'the application was sent');
+  /* The notification carries no scan commentary at all now: the checks decide
+     whether it exists, so restating their verdict inside it was noise. What
+     matters here is that an unreachable scanner does not cost a candidate
+     their application. The endpoint's log still records what ran. */
+  eq(/not checked|known malware|inspected/i.test(sent.html + sent.text), false,
+     'and says nothing about scanning');
 });
 
 await check('a mail failure is reported, not swallowed', async () => {
