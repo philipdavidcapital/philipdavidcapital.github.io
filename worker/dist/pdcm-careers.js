@@ -18,8 +18,8 @@ var MAX_FILE_BYTES = 1024 * 1024;
 var MAX_TOTAL_BYTES = 1536 * 1024;
 var startsWith = /* @__PURE__ */ __name((b, sig) => sig.every((v, i) => b[i] === v), "startsWith");
 var INFLATE_UNDER = 400 * 1024;
-var HEAD = 128 * 1024;
-var TAIL = 64 * 1024;
+var HEAD = 64 * 1024;
+var TAIL = 32 * 1024;
 var latin1 = new TextDecoder("latin1");
 function windows(bytes) {
   if (bytes.length <= HEAD + TAIL) return [latin1.decode(bytes)];
@@ -245,13 +245,15 @@ var VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 async function verifyTurnstile(token, secret, ip, fetchImpl = fetch) {
   if (!secret) return { configured: false, ok: true, reason: "not configured" };
   if (!token) return { configured: true, ok: false, reason: "no token supplied" };
-  const body = new FormData();
-  body.append("secret", secret);
-  body.append("response", token);
-  if (ip) body.append("remoteip", ip);
+  const body = new URLSearchParams({ secret, response: token });
+  if (ip) body.set("remoteip", ip);
   let res;
   try {
-    res = await fetchImpl(VERIFY, { method: "POST", body });
+    res = await fetchImpl(VERIFY, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: body.toString()
+    });
   } catch {
     return { configured: true, ok: true, reason: "verification unreachable" };
   }
@@ -494,6 +496,7 @@ var index_default = {
   }
 };
 function base64(bytes) {
+  if (typeof bytes.toBase64 === "function") return bytes.toBase64();
   let s = "";
   for (let i = 0; i < bytes.length; i += 32768) {
     s += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));

@@ -180,7 +180,13 @@ export default {
   },
 };
 
+/* Encoding the attachments is the largest piece of processing in the whole
+ * request, and it grows with the file: the chunked fromCharCode loop below
+ * builds a megabyte-and-a-half string before btoa ever sees it. Runtimes that
+ * have the native encoder do the same work without materialising that string,
+ * which is most of the cost. The loop stays as the fallback. */
 function base64(bytes) {
+  if (typeof bytes.toBase64 === 'function') return bytes.toBase64();
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) {
     s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));

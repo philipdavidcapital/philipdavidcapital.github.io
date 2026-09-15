@@ -45,8 +45,13 @@ const startsWith = (b, sig) => sig.every((v, i) => b[i] === v);
    and a PDF's trailer live at the very end. Nothing being searched for is
    ever found only in the middle of a large file. */
 const INFLATE_UNDER = 400 * 1024;
-const HEAD = 128 * 1024;
-const TAIL = 64 * 1024;
+/* The windows decoded for marker searching. Every byte here is processing
+ * spent, and the markers being looked for live in a PDF's header objects or
+ * its trailer, and in a ZIP's central directory -- all of which sit at one
+ * end or the other. Halved after the real runtime reported eight to ten
+ * milliseconds for a request measured at five under Node. */
+const HEAD = 64 * 1024;
+const TAIL = 32 * 1024;
 
 const latin1 = new TextDecoder('latin1');
 

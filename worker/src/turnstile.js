@@ -19,14 +19,19 @@ export async function verifyTurnstile(token, secret, ip, fetchImpl = fetch) {
   if (!secret) return { configured: false, ok: true, reason: 'not configured' };
   if (!token) return { configured: true, ok: false, reason: 'no token supplied' };
 
-  const body = new FormData();
-  body.append('secret', secret);
-  body.append('response', token);
-  if (ip) body.append('remoteip', ip);
+  /* Form-encoded rather than multipart: the verifier accepts both, and
+     building a multipart body costs measurably more processing than joining
+     three short strings. On a ten-millisecond budget that is worth having. */
+  const body = new URLSearchParams({ secret, response: token });
+  if (ip) body.set('remoteip', ip);
 
   let res;
   try {
-    res = await fetchImpl(VERIFY, { method: 'POST', body });
+    res = await fetchImpl(VERIFY, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
   } catch {
     /* Cloudflare verifying its own token is about as reliable as this gets.
        If it is unreachable the fault is ours, not the applicant's, and losing
