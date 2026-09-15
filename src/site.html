@@ -4149,6 +4149,18 @@ footer .foot-top { padding-bottom: 22px; }
     slot.setAttribute("data-sitekey", TURNSTILE_SITE_KEY);
     slot.setAttribute("data-theme", "light");
     slot.setAttribute("data-action", "careers");
+
+    /* Nothing is drawn unless a visitor actually has to do something. Almost
+       nobody does -- the check passes silently on the evidence the browser
+       already gives -- so the form stays as it was, and the widget appears
+       only for the visitor who has to answer it. A grey panel announcing a
+       verification that required nothing was reporting our own plumbing to
+       the candidate. */
+    slot.setAttribute("data-appearance", "interaction-only");
+
+    /* And when it does appear, it takes the form's width rather than sitting
+       in a box of its own proportions. */
+    slot.setAttribute("data-size", "flexible");
     if (button && button.parentNode) button.parentNode.insertBefore(slot, button);
     else form.appendChild(slot);
 

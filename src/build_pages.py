@@ -214,7 +214,10 @@ body.page-inner footer { flex-shrink: 0; }
 
 /* The verification widget, when one is configured. Cloudflare sizes its own
    iframe; this only gives it room and keeps it on the form's rhythm. */
-.pdcm-turnstile { margin: 4px 0 22px; min-height: 65px; }
+/* Only the visitor who is actually challenged ever sees this, so it reserves
+   no room: an empty slot must not leave a gap above the button. */
+.pdcm-turnstile { margin: 0; }
+.pdcm-turnstile:not(:empty) { margin: 4px 0 22px; }
 
 /* When it could not load. Reads as the notice it is, not as an error the
    applicant caused. */
