@@ -2876,23 +2876,19 @@ footer .foot-top { padding-bottom: 22px; }
    to stay legible. At rest the window still shows a full screen of hero with
    no fade at all; the fade is what you scroll into.
 
-   Taller again, because height is what the fade has to spend. It can only
-   run from the moment it starts to the moment the hero's lower edge reaches
-   the bottom of the window; past that the seam is on screen, and a fade
-   still resolving would show as the line all of this exists to remove. That
-   distance is the hero's height minus the window's -- at 130vh it came to
-   barely three wheel notches, and one notch carried 68% of the whole effect.
-   Measured, not guessed. The bottom padding grows by the same amount as the
-   height, which leaves the headline where it was on screen and puts every
-   added pixel into the empty ground the gradient crosses. */
+   It was briefly taller still -- 190vh -- to buy the fade more scroll to run
+   across. That is not what a longer fade means: it lengthened the landing
+   page rather than the effect, and made you scroll further to reach anything.
+   The height is back where it was, and the smoothness comes from the fade's
+   own length and from easing the value over time instead. */
 .hero {
-  height: 190vh;
-  min-height: 1400px;
-  padding-bottom: max(292px, 102vh);
+  height: 130vh;
+  min-height: 960px;
+  padding-bottom: max(200px, 42vh);
 }
 
 @media (max-width: 700px) {
-  .hero { height: 150vh; min-height: 850px; padding-bottom: max(182px, 60vh); }
+  .hero { height: 124vh; min-height: 700px; padding-bottom: max(150px, 34vh); }
 }
 
 /* The final settle onto the page's own colour. Sized from the same scroll

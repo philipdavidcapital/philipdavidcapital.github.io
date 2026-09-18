@@ -138,23 +138,19 @@ EXTRA_CSS = """
    to stay legible. At rest the window still shows a full screen of hero with
    no fade at all; the fade is what you scroll into.
 
-   Taller again, because height is what the fade has to spend. It can only
-   run from the moment it starts to the moment the hero's lower edge reaches
-   the bottom of the window; past that the seam is on screen, and a fade
-   still resolving would show as the line all of this exists to remove. That
-   distance is the hero's height minus the window's -- at 130vh it came to
-   barely three wheel notches, and one notch carried 68% of the whole effect.
-   Measured, not guessed. The bottom padding grows by the same amount as the
-   height, which leaves the headline where it was on screen and puts every
-   added pixel into the empty ground the gradient crosses. */
+   It was briefly taller still -- 190vh -- to buy the fade more scroll to run
+   across. That is not what a longer fade means: it lengthened the landing
+   page rather than the effect, and made you scroll further to reach anything.
+   The height is back where it was, and the smoothness comes from the fade's
+   own length and from easing the value over time instead. */
 .hero {
-  height: 190vh;
-  min-height: 1400px;
-  padding-bottom: max(292px, 102vh);
+  height: 130vh;
+  min-height: 960px;
+  padding-bottom: max(200px, 42vh);
 }
 
 @media (max-width: 700px) {
-  .hero { height: 150vh; min-height: 850px; padding-bottom: max(182px, 60vh); }
+  .hero { height: 124vh; min-height: 700px; padding-bottom: max(150px, 34vh); }
 }
 
 /* The final settle onto the page's own colour. Sized from the same scroll
@@ -335,11 +331,29 @@ DISSOLVE_JS = """
     reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch (e) {}
 
-  var ticking = false;
-  var last = -1;
+  /* ── Why the value is eased in time as well as in scroll ──────────
+     A wheel notch is a jump, not a movement: one click of the wheel is
+     something like a hundred pixels arriving at once, and the hero has only
+     a few hundred pixels of travel in which the whole fade has to happen.
+     Mapping the fade straight onto scroll position therefore put most of the
+     effect into each single click, which is what made it read as steps
+     rather than as a dissolve.
 
-  function frame() {
-    ticking = false;
+     So scroll sets a target and the drawn value walks toward it, covering
+     about nine tenths of the remaining distance every quarter second. A
+     click still moves the target the same distance; it is the walk that the
+     eye follows, and the walk is continuous. Stop scrolling mid-way and the
+     fade keeps settling for a moment, which is the behaviour of something
+     with weight. */
+  var TAU = 0.25;           /* seconds to cover ~63% of what remains */
+  var SETTLED = 0.0006;     /* close enough to stop the loop */
+
+  var target = 0;
+  var shown = 0;
+  var running = false;
+  var lastTime = 0;
+
+  function measure() {
     var h = hero.offsetHeight || window.innerHeight;
     /* Start a little before the edge actually crosses, so it arrives with a
        fade already behind it rather than appearing as a line that then
@@ -349,25 +363,57 @@ DISSOLVE_JS = """
     var risen = window.innerHeight - hero.getBoundingClientRect().bottom + lead;
     var t = risen / (OVER + lead);
     t = t < 0 ? 0 : t > 1 ? 1 : t;
-    var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
-    /* Small enough to be invisible at any length the fade can take. It only
-       exists to skip the style write when nothing has moved. */
-    if (Math.abs(v - last) < 0.0008) return;
-    last = v;
-    var px = v * REACH * h;
+    return reduce ? 1 : t * t * (3 - 2 * t);
+  }
+
+  function paint() {
+    var px = shown * REACH * (hero.offsetHeight || window.innerHeight);
     /* The custom property still drives the mask on the vignette; the shader
        reads the same number to do the fade itself. */
     hero.style.setProperty("--hero-fade", px.toFixed(1) + "px");
     window.pdcmHeroFade = px;
   }
 
+  function step(now) {
+    var dt = lastTime ? Math.min((now - lastTime) / 1000, 0.1) : 0.016;
+    lastTime = now;
+
+    /* Frame-rate independent: the same fraction of the gap per unit of time,
+       whatever the display is doing. */
+    shown += (target - shown) * (1 - Math.exp(-dt / TAU));
+
+    if (Math.abs(target - shown) < SETTLED) {
+      shown = target;
+      running = false;
+      lastTime = 0;
+      paint();
+      return;
+    }
+    paint();
+    window.requestAnimationFrame(step);
+  }
+
   function onScroll() {
-    if (!ticking) { ticking = true; window.requestAnimationFrame(frame); }
+    target = measure();
+    if (!running) {
+      running = true;
+      lastTime = 0;
+      window.requestAnimationFrame(step);
+    }
   }
 
   window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", onScroll, { passive: true });
-  frame();
+  window.addEventListener("resize", function () {
+    /* A resize is not a gesture; there is nothing to follow, so land on the
+       answer rather than gliding to it. */
+    target = measure();
+    shown = target;
+    paint();
+  }, { passive: true });
+
+  target = measure();
+  shown = target;
+  paint();
 })();
 """
 js = js + "\n" + DISSOLVE_JS

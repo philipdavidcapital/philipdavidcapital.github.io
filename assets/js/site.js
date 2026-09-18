@@ -1629,11 +1629,29 @@
     reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch (e) {}
 
-  var ticking = false;
-  var last = -1;
+  /* ── Why the value is eased in time as well as in scroll ──────────
+     A wheel notch is a jump, not a movement: one click of the wheel is
+     something like a hundred pixels arriving at once, and the hero has only
+     a few hundred pixels of travel in which the whole fade has to happen.
+     Mapping the fade straight onto scroll position therefore put most of the
+     effect into each single click, which is what made it read as steps
+     rather than as a dissolve.
 
-  function frame() {
-    ticking = false;
+     So scroll sets a target and the drawn value walks toward it, covering
+     about nine tenths of the remaining distance every quarter second. A
+     click still moves the target the same distance; it is the walk that the
+     eye follows, and the walk is continuous. Stop scrolling mid-way and the
+     fade keeps settling for a moment, which is the behaviour of something
+     with weight. */
+  var TAU = 0.25;           /* seconds to cover ~63% of what remains */
+  var SETTLED = 0.0006;     /* close enough to stop the loop */
+
+  var target = 0;
+  var shown = 0;
+  var running = false;
+  var lastTime = 0;
+
+  function measure() {
     var h = hero.offsetHeight || window.innerHeight;
     /* Start a little before the edge actually crosses, so it arrives with a
        fade already behind it rather than appearing as a line that then
@@ -1643,23 +1661,55 @@
     var risen = window.innerHeight - hero.getBoundingClientRect().bottom + lead;
     var t = risen / (OVER + lead);
     t = t < 0 ? 0 : t > 1 ? 1 : t;
-    var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
-    /* Small enough to be invisible at any length the fade can take. It only
-       exists to skip the style write when nothing has moved. */
-    if (Math.abs(v - last) < 0.0008) return;
-    last = v;
-    var px = v * REACH * h;
+    return reduce ? 1 : t * t * (3 - 2 * t);
+  }
+
+  function paint() {
+    var px = shown * REACH * (hero.offsetHeight || window.innerHeight);
     /* The custom property still drives the mask on the vignette; the shader
        reads the same number to do the fade itself. */
     hero.style.setProperty("--hero-fade", px.toFixed(1) + "px");
     window.pdcmHeroFade = px;
   }
 
+  function step(now) {
+    var dt = lastTime ? Math.min((now - lastTime) / 1000, 0.1) : 0.016;
+    lastTime = now;
+
+    /* Frame-rate independent: the same fraction of the gap per unit of time,
+       whatever the display is doing. */
+    shown += (target - shown) * (1 - Math.exp(-dt / TAU));
+
+    if (Math.abs(target - shown) < SETTLED) {
+      shown = target;
+      running = false;
+      lastTime = 0;
+      paint();
+      return;
+    }
+    paint();
+    window.requestAnimationFrame(step);
+  }
+
   function onScroll() {
-    if (!ticking) { ticking = true; window.requestAnimationFrame(frame); }
+    target = measure();
+    if (!running) {
+      running = true;
+      lastTime = 0;
+      window.requestAnimationFrame(step);
+    }
   }
 
   window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", onScroll, { passive: true });
-  frame();
+  window.addEventListener("resize", function () {
+    /* A resize is not a gesture; there is nothing to follow, so land on the
+       answer rather than gliding to it. */
+    target = measure();
+    shown = target;
+    paint();
+  }, { passive: true });
+
+  target = measure();
+  shown = target;
+  paint();
 })();
