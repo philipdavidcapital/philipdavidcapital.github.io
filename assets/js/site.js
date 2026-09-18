@@ -1613,7 +1613,12 @@
   var hero = document.querySelector(".hero");
   if (!hero) return;
 
-  var REACH = 0.58;   /* the fade's full length, as a fraction of the hero */
+  /* The fade's full length, as a fraction of the hero's height. Longer is
+     softer, and the limit is the text the gradient passes behind: measured
+     over the sub-headline at the worst moment, 0.58 gives a contrast ratio
+     of 7.1, 0.66 gives 4.8, and 0.74 gives 3.1 -- below the 4.5 that small
+     text needs, and visibly washed. So this is as long as it goes. */
+  var REACH = 0.66;
   var OVER = 340;     /* how far the edge rises before the fade is full */
 
   /* How far before the edge reaches the bottom of the window the fade
