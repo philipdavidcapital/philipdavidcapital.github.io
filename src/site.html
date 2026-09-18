@@ -2832,20 +2832,20 @@ footer .foot-top { padding-bottom: 22px; }
        run much further for the same cost to the text underneath. */
     -webkit-mask-image: linear-gradient(180deg, #000 0%,
       #000 calc(100% - var(--hero-fade, 0px)),
-      rgba(0, 0, 0, 0.97) calc(100% - var(--hero-fade, 0px) * 0.88),
-      rgba(0, 0, 0, 0.90) calc(100% - var(--hero-fade, 0px) * 0.76),
-      rgba(0, 0, 0, 0.78) calc(100% - var(--hero-fade, 0px) * 0.64),
-      rgba(0, 0, 0, 0.60) calc(100% - var(--hero-fade, 0px) * 0.52),
+      rgba(0, 0, 0, 0.99) calc(100% - var(--hero-fade, 0px) * 0.88),
+      rgba(0, 0, 0, 0.96) calc(100% - var(--hero-fade, 0px) * 0.76),
+      rgba(0, 0, 0, 0.89) calc(100% - var(--hero-fade, 0px) * 0.64),
+      rgba(0, 0, 0, 0.74) calc(100% - var(--hero-fade, 0px) * 0.52),
       rgba(0, 0, 0, 0.40) calc(100% - var(--hero-fade, 0px) * 0.40),
       rgba(0, 0, 0, 0.20) calc(100% - var(--hero-fade, 0px) * 0.30),
       rgba(0, 0, 0, 0.07) calc(100% - var(--hero-fade, 0px) * 0.24),
       transparent calc(100% - var(--hero-fade, 0px) * 0.20)) !important;
     mask-image: linear-gradient(180deg, #000 0%,
       #000 calc(100% - var(--hero-fade, 0px)),
-      rgba(0, 0, 0, 0.97) calc(100% - var(--hero-fade, 0px) * 0.88),
-      rgba(0, 0, 0, 0.90) calc(100% - var(--hero-fade, 0px) * 0.76),
-      rgba(0, 0, 0, 0.78) calc(100% - var(--hero-fade, 0px) * 0.64),
-      rgba(0, 0, 0, 0.60) calc(100% - var(--hero-fade, 0px) * 0.52),
+      rgba(0, 0, 0, 0.99) calc(100% - var(--hero-fade, 0px) * 0.88),
+      rgba(0, 0, 0, 0.96) calc(100% - var(--hero-fade, 0px) * 0.76),
+      rgba(0, 0, 0, 0.89) calc(100% - var(--hero-fade, 0px) * 0.64),
+      rgba(0, 0, 0, 0.74) calc(100% - var(--hero-fade, 0px) * 0.52),
       rgba(0, 0, 0, 0.40) calc(100% - var(--hero-fade, 0px) * 0.40),
       rgba(0, 0, 0, 0.20) calc(100% - var(--hero-fade, 0px) * 0.30),
       rgba(0, 0, 0, 0.07) calc(100% - var(--hero-fade, 0px) * 0.24),
@@ -4890,7 +4890,7 @@ footer .foot-top { padding-bottom: 22px; }
        exponent is what buys the length: raised from 1.6, the upper reaches
        of a much longer fade contribute almost nothing, which is what lets it
        start high without greying the words it passes. */
-    "    float k=smoothstep(0.0,1.0,pow(fy,2.6));",
+    "    float k=smoothstep(0.0,1.0,pow(fy,3.4));",
     "    vec3 paper=vec3(0.9843,0.9804,0.9647);",
     "    float lum=dot(col,vec3(0.2126,0.7152,0.0722));",
     "    vec3 smoke=paper-vec3(clamp(0.32-lum,0.0,0.32))*0.46;",
@@ -4898,7 +4898,7 @@ footer .foot-top { padding-bottom: 22px; }
     /* Approaching paper, but stopping short of it: the element below finishes
        the last stretch in CSS so the two sides of the join come from the same
        rendering path. */
-    "    col=mix(col,paper,smoothstep(0.62,1.0,fy)*0.88);",
+    "    col=mix(col,paper,smoothstep(0.68,1.0,fy)*0.88);",
     "  }",
 
     "  gl_FragColor=vec4(col,1.0);}"
