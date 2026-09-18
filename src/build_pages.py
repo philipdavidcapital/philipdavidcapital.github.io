@@ -136,15 +136,25 @@ EXTRA_CSS = """
    it. The extra height is empty ground below the text for the gradient to
    occupy, so the fade can be long without passing behind anything that has
    to stay legible. At rest the window still shows a full screen of hero with
-   no fade at all; the fade is what you scroll into. */
+   no fade at all; the fade is what you scroll into.
+
+   Taller again, because height is what the fade has to spend. It can only
+   run from the moment it starts to the moment the hero's lower edge reaches
+   the bottom of the window; past that the seam is on screen, and a fade
+   still resolving would show as the line all of this exists to remove. That
+   distance is the hero's height minus the window's -- at 130vh it came to
+   barely three wheel notches, and one notch carried 68% of the whole effect.
+   Measured, not guessed. The bottom padding grows by the same amount as the
+   height, which leaves the headline where it was on screen and puts every
+   added pixel into the empty ground the gradient crosses. */
 .hero {
-  height: 130vh;
-  min-height: 960px;
-  padding-bottom: max(200px, 42vh);
+  height: 190vh;
+  min-height: 1400px;
+  padding-bottom: max(292px, 102vh);
 }
 
 @media (max-width: 700px) {
-  .hero { height: 124vh; min-height: 700px; padding-bottom: max(150px, 34vh); }
+  .hero { height: 150vh; min-height: 850px; padding-bottom: max(182px, 60vh); }
 }
 
 /* The final settle onto the page's own colour. Sized from the same scroll
@@ -310,8 +320,15 @@ DISSOLVE_JS = """
   if (!hero) return;
 
   var REACH = 0.58;   /* the fade's full length, as a fraction of the hero */
-  var OVER = 260;     /* how far the edge rises before the fade is full */
-  var LEAD = 110;     /* how far before it crosses that the fade starts */
+  var OVER = 340;     /* how far the edge rises before the fade is full */
+
+  /* How far before the edge reaches the bottom of the window the fade
+     begins, as a share of the distance available -- the hero's height less
+     the window's. Fixed pixels cannot work here: the room depends on the
+     window, and a lead longer than the room would leave the fade already
+     part-resolved before a visitor has scrolled at all. The remaining fifth
+     is the slack that guarantees it starts from nothing. */
+  var LEAD_SHARE = 0.8;
 
   var reduce = false;
   try {
@@ -328,11 +345,14 @@ DISSOLVE_JS = """
        fade already behind it rather than appearing as a line that then
        softens. Measured: without the lead the first visible moment carried a
        step of 24, against 5 everywhere after it. */
-    var risen = window.innerHeight - hero.getBoundingClientRect().bottom + LEAD;
-    var t = risen / (OVER + LEAD);
+    var lead = Math.max(0, (h - window.innerHeight) * LEAD_SHARE);
+    var risen = window.innerHeight - hero.getBoundingClientRect().bottom + lead;
+    var t = risen / (OVER + lead);
     t = t < 0 ? 0 : t > 1 ? 1 : t;
     var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
-    if (Math.abs(v - last) < 0.004) return;
+    /* Small enough to be invisible at any length the fade can take. It only
+       exists to skip the style write when nothing has moved. */
+    if (Math.abs(v - last) < 0.0008) return;
     last = v;
     var px = v * REACH * h;
     /* The custom property still drives the mask on the vignette; the shader

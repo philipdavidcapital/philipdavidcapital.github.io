@@ -1614,8 +1614,15 @@
   if (!hero) return;
 
   var REACH = 0.58;   /* the fade's full length, as a fraction of the hero */
-  var OVER = 260;     /* how far the edge rises before the fade is full */
-  var LEAD = 110;     /* how far before it crosses that the fade starts */
+  var OVER = 340;     /* how far the edge rises before the fade is full */
+
+  /* How far before the edge reaches the bottom of the window the fade
+     begins, as a share of the distance available -- the hero's height less
+     the window's. Fixed pixels cannot work here: the room depends on the
+     window, and a lead longer than the room would leave the fade already
+     part-resolved before a visitor has scrolled at all. The remaining fifth
+     is the slack that guarantees it starts from nothing. */
+  var LEAD_SHARE = 0.8;
 
   var reduce = false;
   try {
@@ -1632,11 +1639,14 @@
        fade already behind it rather than appearing as a line that then
        softens. Measured: without the lead the first visible moment carried a
        step of 24, against 5 everywhere after it. */
-    var risen = window.innerHeight - hero.getBoundingClientRect().bottom + LEAD;
-    var t = risen / (OVER + LEAD);
+    var lead = Math.max(0, (h - window.innerHeight) * LEAD_SHARE);
+    var risen = window.innerHeight - hero.getBoundingClientRect().bottom + lead;
+    var t = risen / (OVER + lead);
     t = t < 0 ? 0 : t > 1 ? 1 : t;
     var v = reduce ? 1 : t * t * (3 - 2 * t);   /* eased, or simply resolved */
-    if (Math.abs(v - last) < 0.004) return;
+    /* Small enough to be invisible at any length the fade can take. It only
+       exists to skip the style write when nothing has moved. */
+    if (Math.abs(v - last) < 0.0008) return;
     last = v;
     var px = v * REACH * h;
     /* The custom property still drives the mask on the vignette; the shader
