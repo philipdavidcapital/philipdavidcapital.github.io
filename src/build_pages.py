@@ -320,7 +320,7 @@ DISSOLVE_JS = """
      over the sub-headline at the worst moment, 0.58 gives a contrast ratio
      of 7.1, 0.66 gives 4.8, and 0.74 gives 3.1 -- below the 4.5 that small
      text needs, and visibly washed. So this is as long as it goes. */
-  var REACH = 0.66;
+  var REACH = 0.98;
   var OVER = 340;     /* how far the edge rises before the fade is full */
 
   /* How far before the edge reaches the bottom of the window the fade
@@ -350,7 +350,7 @@ DISSOLVE_JS = """
      eye follows, and the walk is continuous. Stop scrolling mid-way and the
      fade keeps settling for a moment, which is the behaviour of something
      with weight. */
-  var TAU = 0.25;           /* seconds to cover ~63% of what remains */
+  var TAU = 0.85;           /* seconds to cover ~63% of what remains */
   var SETTLED = 0.0006;     /* close enough to stop the loop */
 
   var target = 0;

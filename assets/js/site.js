@@ -1359,8 +1359,11 @@
     "  float fy=u_fade>0.5?clamp((u_fade-gl_FragCoord.y)/u_fade,0.0,1.0):0.0;",
     "  if(fy>0.0){",
     /* Slow to begin, so the fade reaches up the hero without touching the
-       headline, and flat at the end so it arrives without a slope. */
-    "    float k=smoothstep(0.0,1.0,pow(fy,1.6));",
+       headline, and flat at the end so it arrives without a slope. The
+       exponent is what buys the length: raised from 1.6, the upper reaches
+       of a much longer fade contribute almost nothing, which is what lets it
+       start high without greying the words it passes. */
+    "    float k=smoothstep(0.0,1.0,pow(fy,2.6));",
     "    vec3 paper=vec3(0.9843,0.9804,0.9647);",
     "    float lum=dot(col,vec3(0.2126,0.7152,0.0722));",
     "    vec3 smoke=paper-vec3(clamp(0.32-lum,0.0,0.32))*0.46;",
@@ -1368,7 +1371,7 @@
     /* Approaching paper, but stopping short of it: the element below finishes
        the last stretch in CSS so the two sides of the join come from the same
        rendering path. */
-    "    col=mix(col,paper,smoothstep(0.55,1.0,fy)*0.88);",
+    "    col=mix(col,paper,smoothstep(0.62,1.0,fy)*0.88);",
     "  }",
 
     "  gl_FragColor=vec4(col,1.0);}"
@@ -1618,7 +1621,7 @@
      over the sub-headline at the worst moment, 0.58 gives a contrast ratio
      of 7.1, 0.66 gives 4.8, and 0.74 gives 3.1 -- below the 4.5 that small
      text needs, and visibly washed. So this is as long as it goes. */
-  var REACH = 0.66;
+  var REACH = 0.98;
   var OVER = 340;     /* how far the edge rises before the fade is full */
 
   /* How far before the edge reaches the bottom of the window the fade
@@ -1648,7 +1651,7 @@
      eye follows, and the walk is continuous. Stop scrolling mid-way and the
      fade keeps settling for a moment, which is the behaviour of something
      with weight. */
-  var TAU = 0.25;           /* seconds to cover ~63% of what remains */
+  var TAU = 0.85;           /* seconds to cover ~63% of what remains */
   var SETTLED = 0.0006;     /* close enough to stop the loop */
 
   var target = 0;
