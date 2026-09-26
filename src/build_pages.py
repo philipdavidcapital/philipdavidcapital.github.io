@@ -327,9 +327,11 @@ DISSOLVE_JS = """
      begins, as a share of the distance available -- the hero's height less
      the window's. Fixed pixels cannot work here: the room depends on the
      window, and a lead longer than the room would leave the fade already
-     part-resolved before a visitor has scrolled at all. The remaining fifth
-     is the slack that guarantees it starts from nothing. */
-  var LEAD_SHARE = 0.8;
+     part-resolved before a visitor has scrolled at all. At exactly the room
+     it is zero at rest and moving from the first pixel of scroll -- the
+     fifth of slack this used to keep was a dead stretch where nothing
+     happened, followed by a visible start. */
+  var LEAD_SHARE = 1.0;   /* the whole of it: under way from the first pixel */
 
   var reduce = false;
   try {
@@ -368,7 +370,14 @@ DISSOLVE_JS = """
     var risen = window.innerHeight - hero.getBoundingClientRect().bottom + lead;
     var t = risen / (OVER + lead);
     t = t < 0 ? 0 : t > 1 ? 1 : t;
-    return reduce ? 1 : t * t * (3 - 2 * t);
+    /* Ease-out, not smoothstep. Smoothstep starts with zero slope, so the
+       first stretch of scroll produced almost nothing and then the rate
+       climbed -- and that climb is the moment the eye catches the fade
+       starting. A sine ease-out is moving at its fastest at t=0 and only ever
+       slows from there, so there is no onset to notice: by the time you look
+       it is already under way. It still arrives flat at t=1, which is what
+       keeps the seam from showing as a change of slope. */
+    return reduce ? 1 : Math.sin(t * Math.PI / 2);
   }
 
   function paint() {
