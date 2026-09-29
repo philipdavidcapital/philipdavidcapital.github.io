@@ -955,7 +955,9 @@
     align-items: center;
     font-size: 10px;
     letter-spacing: 0.16em;
-    color: rgba(246, 243, 236, 0.4);
+    /* 0.52, not 0.4: at 0.4 this measured a contrast ratio of 3.55 against
+       the footer's navy, under the 4.5 that text this size needs. */
+    color: rgba(246, 243, 236, 0.52);
     text-transform: uppercase;
     flex-wrap: nowrap;
     gap: 24px;
@@ -969,7 +971,7 @@
     justify-content: flex-end;
   }
 
-  .foot-bottom a { color: rgba(246, 243, 236, 0.4); text-decoration: none; margin-left: 0; transition: color 0.2s ease; white-space: nowrap; }
+  .foot-bottom a { color: rgba(246, 243, 236, 0.52); text-decoration: none; margin-left: 0; transition: color 0.2s ease; white-space: nowrap; }
   .foot-bottom a:hover { color: var(--gold); }
   .foot-bottom .copy { white-space: nowrap; }
 
@@ -2618,7 +2620,7 @@ section{padding:90px 56px;}
   font-size: 11.5px;
   letter-spacing: 0.04em;
   color: var(--charcoal);
-  opacity: 0.8;
+  opacity: 0.92;   /* 0.8 measured 3.9 against the paper; 4.5 is the floor */
   margin: 18px 0 0;
   text-align: left;
 }
@@ -2629,7 +2631,7 @@ section{padding:90px 56px;}
   font-size: 11.5px;
   line-height: 1.6;
   color: var(--charcoal);
-  opacity: 0.78;
+  opacity: 0.92;   /* 0.78 measured 3.7 against the paper; 4.5 is the floor */
   margin: 7px 0 0;
   text-align: left;
 }
@@ -2651,7 +2653,7 @@ section{padding:90px 56px;}
   font-size: 11.5px;
   line-height: 1.65;
   color: var(--charcoal);
-  opacity: 0.8;
+  opacity: 0.92;   /* 0.8 measured 3.9 against the paper; 4.5 is the floor */
   margin: 22px 0 0;
   text-align: left;
 }
@@ -3136,8 +3138,13 @@ footer .foot-top { padding-bottom: 22px; }
       <h3>Disclosure of Information</h3>
       <p>We do not sell personal information. We may disclose personal information to service providers acting on our behalf and bound by confidentiality obligations, to professional advisers including legal, tax, and accounting advisers, to regulators and other authorities where required by law or legal process, and to successors in interest in connection with any reorganization or transfer of business. Where information is transferred outside your home jurisdiction, we apply appropriate safeguards consistent with applicable law.</p>
 
+      <h3>Job Applicants</h3>
+      <p>If you apply through the Careers page, we collect the information you enter in the application form, including your name, email address, telephone number, location, and any additional comments, together with the r&eacute;sum&eacute; and cover letter you attach. We use this information solely to consider your candidacy for current or future positions with the firm.</p>
+      <p>Your application is transmitted to us through service providers that host the application form and deliver it to the firm by email. Before delivery, each attached file is checked for malicious content; as part of that check, a digital fingerprint of the file, from which its contents cannot be read or reconstructed, is compared against a third-party database of known malicious files. The file itself is not sent to that database. We do not sell applicant information or use it for any purpose other than recruitment.</p>
+      <p>We retain applications for two years from the date of submission, after which they are deleted. You may ask us to delete your application sooner, or to access or correct it, by contacting us using the details below.</p>
+
       <h3>Cookies and Similar Technologies</h3>
-      <p>This website may use cookies and similar technologies to support technical functioning of the site and to gather aggregate usage information. Most web browsers allow you to manage cookie preferences through browser settings. Disabling cookies may affect the functioning of certain features of the website.</p>
+      <p>This website does not use advertising or analytics cookies and does not track visitors across other websites. It stores one item in your browser for the length of your visit, recording that you have acknowledged the Family Office Notice so that it is not shown again on each page. The website loads typefaces from Google Fonts, and the Careers page uses a Cloudflare service to confirm that applications are submitted by a person rather than an automated program; these providers may receive technical information such as your internet protocol address in order to deliver those services.</p>
 
       <h3>Data Security</h3>
       <p>We maintain reasonable administrative, technical, and physical safeguards designed to protect personal information from loss, misuse, unauthorized access, disclosure, alteration, and destruction. No system of electronic transmission or storage is, however, completely secure, and we cannot guarantee the absolute security of any information transmitted to or stored on the website.</p>
@@ -3220,7 +3227,7 @@ footer .foot-top { padding-bottom: 22px; }
 
       <p>The work spans investment research, portfolio analysis, accounting and operations, investor relations, and administration of the General Partner. Roles are broad rather than narrowly defined.</p>
 
-      <p>Candidates may submit a r&eacute;sum&eacute; at any time. A cover letter is optional. Submissions are kept on file and reviewed when a position opens.</p>
+      <p>Candidates may submit a r&eacute;sum&eacute; at any time. A cover letter is optional. Submissions are kept on file for two years and reviewed when a position opens.</p>
 
       <p class="pdcm-required-note">* indicates a required field</p>
 
@@ -3496,7 +3503,7 @@ footer .foot-top { padding-bottom: 22px; }
           <textarea id="pa-comments" name="Additional Comments" rows="6" placeholder="Optional. Anything further you would like the firm to know."></textarea>
         </div>
 
-        <p class="pdcm-consent">Information submitted here is used solely to consider your candidacy and is not shared outside the firm.</p>
+        <p class="pdcm-consent">Information submitted here is used solely to consider your candidacy, is kept for two years, and is not sold or shared beyond the service providers that deliver it to the firm. See the <a href="/privacy/">Privacy Notice</a>.</p>
 
         <button type="submit" class="pdcm-apply-send">Submit Application</button>
         <p class="pdcm-form-status" id="pdcmApplyStatus" role="status" aria-live="polite" hidden></p>
@@ -4006,10 +4013,10 @@ footer .foot-top { padding-bottom: 22px; }
 </script>
 
 
-<div class="disclaimer-modal" id="entryDisclaimerModal" aria-hidden="true">
+<div class="disclaimer-modal" id="entryDisclaimerModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="entryDisclaimerTitle">
   <div class="disclaimer-card entry-disclaimer-card">
     <div class="disclaimer-content">
-      <h2>Family Office Notice</h2>
+      <h2 id="entryDisclaimerTitle">Family Office Notice</h2>
       <p><strong>Important Notice.</strong> Philip David Capital Management LLC currently operates as a private family office and is relying on the family office exclusion from registration under the Investment Advisers Act of 1940.</p>
       <p>This website is provided for general informational purposes only. Nothing on this website is intended to constitute investment advice, legal advice, tax advice, accounting advice, an offer to sell, a solicitation of an offer to buy, or a recommendation regarding any security, investment strategy, fund interest, private placement, advisory service, or investment product.</p>
       <p>Philip David Capital Management LLC does not provide investment advisory services to the public, does not solicit or accept outside advisory clients or outside investors through this website, and does not hold itself out as an investment adviser to non-family clients.</p>
@@ -4030,9 +4037,22 @@ footer .foot-top { padding-bottom: 22px; }
     var modal = document.getElementById("entryDisclaimerModal");
     var siteShell = document.querySelector(".site-shell");
 
+    /* While the notice is open, everything behind it is inert: it cannot be
+       focused, clicked or read out. Without this, focus stayed on the page
+       underneath, and Tab walked a keyboard or screen reader user through
+       the navigation and the Values section -- all hidden under the overlay
+       -- before it ever reached the button that dismisses it. */
+    function setBackgroundInert(on) {
+      Array.prototype.forEach.call(document.body.children, function (el) {
+        if (el === modal || el.tagName === "SCRIPT") return;
+        if (on) el.setAttribute("inert", ""); else el.removeAttribute("inert");
+      });
+    }
+
     function clearEntryState() {
       document.body.classList.remove("modal-open", "entry-disclaimer-open");
       if (siteShell) siteShell.classList.remove("site-blurred");
+      if (modal) setBackgroundInert(false);
     }
 
     if (!modal) {
@@ -4061,13 +4081,37 @@ footer .foot-top { padding-bottom: 22px; }
       modal.setAttribute("aria-hidden", "false");
       document.body.classList.add("modal-open", "entry-disclaimer-open");
       if (siteShell) siteShell.classList.add("site-blurred");
+      setBackgroundInert(true);
       pinToTop();
+      /* Focus goes to the one control the notice has, so Enter or Space
+         acknowledges it straight away. The notice fades in, and a browser
+         will not focus anything that is still invisible -- a single focus()
+         call here landed on nothing -- so it is retried each frame until it
+         takes, for up to a second. preventScroll because the page is pinned
+         to the top and must stay there. */
+      var ack = modal.querySelector("[data-entry-disclaimer-close]");
+      var tries = 0;
+      (function focusAck() {
+        if (!ack || !document.body.classList.contains("entry-disclaimer-open")) return;
+        try { ack.focus({ preventScroll: true }); } catch (e) { ack.focus(); }
+        if (document.activeElement !== ack && ++tries < 60) window.requestAnimationFrame(focusAck);
+      })();
     }
 
     function closeEntryDisclaimer() {
+      var hadFocus = modal.contains(document.activeElement);
       modal.classList.remove("active");
       modal.setAttribute("aria-hidden", "true");
       clearEntryState();
+      /* The notice sits at the end of the document, so leaving focus where it
+         was would send the next Tab off the end of the page and out into the
+         browser before it wrapped round. Hand it to the top of the page
+         instead, where the visitor actually is. A mouse user does not see a
+         focus ring for this; a keyboard user does, which is the point. */
+      if (hadFocus) {
+        var first = document.querySelector("nav a[href]");
+        if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
+      }
     }
 
     clearEntryState();

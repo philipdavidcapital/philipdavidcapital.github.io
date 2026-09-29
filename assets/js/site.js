@@ -498,9 +498,22 @@
     var modal = document.getElementById("entryDisclaimerModal");
     var siteShell = document.querySelector(".site-shell");
 
+    /* While the notice is open, everything behind it is inert: it cannot be
+       focused, clicked or read out. Without this, focus stayed on the page
+       underneath, and Tab walked a keyboard or screen reader user through
+       the navigation and the Values section -- all hidden under the overlay
+       -- before it ever reached the button that dismisses it. */
+    function setBackgroundInert(on) {
+      Array.prototype.forEach.call(document.body.children, function (el) {
+        if (el === modal || el.tagName === "SCRIPT") return;
+        if (on) el.setAttribute("inert", ""); else el.removeAttribute("inert");
+      });
+    }
+
     function clearEntryState() {
       document.body.classList.remove("modal-open", "entry-disclaimer-open");
       if (siteShell) siteShell.classList.remove("site-blurred");
+      if (modal) setBackgroundInert(false);
     }
 
     if (!modal) {
@@ -529,13 +542,37 @@
       modal.setAttribute("aria-hidden", "false");
       document.body.classList.add("modal-open", "entry-disclaimer-open");
       if (siteShell) siteShell.classList.add("site-blurred");
+      setBackgroundInert(true);
       pinToTop();
+      /* Focus goes to the one control the notice has, so Enter or Space
+         acknowledges it straight away. The notice fades in, and a browser
+         will not focus anything that is still invisible -- a single focus()
+         call here landed on nothing -- so it is retried each frame until it
+         takes, for up to a second. preventScroll because the page is pinned
+         to the top and must stay there. */
+      var ack = modal.querySelector("[data-entry-disclaimer-close]");
+      var tries = 0;
+      (function focusAck() {
+        if (!ack || !document.body.classList.contains("entry-disclaimer-open")) return;
+        try { ack.focus({ preventScroll: true }); } catch (e) { ack.focus(); }
+        if (document.activeElement !== ack && ++tries < 60) window.requestAnimationFrame(focusAck);
+      })();
     }
 
     function closeEntryDisclaimer() {
+      var hadFocus = modal.contains(document.activeElement);
       modal.classList.remove("active");
       modal.setAttribute("aria-hidden", "true");
       clearEntryState();
+      /* The notice sits at the end of the document, so leaving focus where it
+         was would send the next Tab off the end of the page and out into the
+         browser before it wrapped round. Hand it to the top of the page
+         instead, where the visitor actually is. A mouse user does not see a
+         focus ring for this; a keyboard user does, which is the point. */
+      if (hadFocus) {
+        var first = document.querySelector("nav a[href]");
+        if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
+      }
     }
 
     var SEEN = "pdcm-entry-notice-acknowledged";
