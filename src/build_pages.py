@@ -523,6 +523,19 @@ def nav_for(inner):
     return out
 
 
+# ── Why every page prefetches on hover ──────────────────────────────
+# The page-to-page transition skipped on a visitor's first click to a page and
+# worked on every click after -- after a refresh, or back and try again. The one
+# thing those later clicks have in common is that the page is already cached.
+# The speculation rules below have the browser fetch a same-site page as soon as
+# the pointer rests on its link (or on touch-down), so by the time the click
+# lands it is already here and the first click behaves like the second. Chrome
+# and Edge honour it; other browsers ignore the block and navigate as before.
+# Assets are excluded -- they are already cached by the page itself.
+#
+# The `expect` link on the footer pages holds the new page's first paint until
+# its content has been parsed, so the transition never captures a page that
+# has only half arrived over a slow connection.
 PAGE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -534,6 +547,10 @@ PAGE = """<!DOCTYPE html>
 <link rel="canonical" href="https://philipdavidcapital.com{path}">
 {fonts}
 <link rel="stylesheet" href="/assets/css/site.css">
+{expect}
+<script type="speculationrules">
+{{"prefetch": [{{"where": {{"and": [{{"href_matches": "/*"}}, {{"not": {{"href_matches": "/assets/*"}}}}]}}, "eagerness": "moderate"}}]}}
+</script>
 </head>
 <body{bodyclass}>
 
@@ -576,7 +593,7 @@ main_html = PAGE.format(
     description="Philip David Capital Management is a private family office headquartered in "
                 "Tulsa, Oklahoma, managing family capital with quality, structure, and "
                 "long-term foresight.",
-    path="/",
+    path="/", expect="",
     fonts=fonts,
     bodyclass="",
     nav=absolutise(nav_for(False)),
@@ -595,6 +612,7 @@ for page in FOOTER_PAGES:
     html = PAGE.format(
         restoration=restoration, title=page["title"], description=page["description"],
         path=page["path"], fonts=fonts,
+        expect='<link rel="expect" href="#page" blocking="render">',
         bodyclass=' class="page-inner page-light"',
         nav=absolutise(nav_for(True)),
         content=absolutise(content),
@@ -620,7 +638,7 @@ NOT_FOUND = """<main class="page">
 </main>"""
 nf = PAGE.format(
     restoration=restoration, title="Page not found — Philip David Capital Management",
-    description="The requested page could not be found.", path="/404.html", fonts=fonts,
+    description="The requested page could not be found.", path="/404.html", fonts=fonts, expect="",
     bodyclass=' class="page-inner page-light"',
     nav=absolutise(nav_for(True)), content=NOT_FOUND,
     footer=absolutise(footer_for()), gate=absolutise(entry_gate),
