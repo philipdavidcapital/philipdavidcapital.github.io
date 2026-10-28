@@ -303,19 +303,6 @@
     margin: 0 auto;
   }
 
-  .hero-eyebrow {
-    color: var(--gold);
-    margin-bottom: 32px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    opacity: 0;
-    animation: fadeUp 1s ease 0.3s forwards;
-  }
-  .hero-eyebrow::before {
-    content: ''; width: 32px; height: 1px; background: var(--gold);
-  }
-
   .hero h1 {
     font-family: 'Cormorant SC', serif;
     font-weight: 500;
